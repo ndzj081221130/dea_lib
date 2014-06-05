@@ -1,0 +1,83 @@
+# coding: UTF-8
+
+require "steno"
+require "steno/core_ext"
+require_relative "./tx_dep"
+
+module Dea
+  class TxDepRegistry
+    
+    attr_accessor :txDeps #Hash<txID,txDep>
+    def initialize
+      @txDeps = {}
+    end
+    
+    def getLocalDep(txId)
+	if txId == nil
+	   puts "txId nil"
+eleif @txDeps == nil
+   puts "txDeps == nil"
+        else 
+	puts @txDep[txId]
+end
+      return @txDeps[txId] # return TxDep 
+    end
+    
+    def addLocalDep(txId , txDep)
+      if contains(txId) == false
+        @txDeps[txId] = txDep            
+      else
+        @txDeps.store(txId,txDep) # @txDeps[txId] = txDep
+      end
+        
+    end
+    
+    def removeLocalDep(txId)
+      
+      @txDeps.delete(txId)
+    end
+    
+    def contains(txId)
+      return @txDeps.has_key?(txId)
+    end
+
+	  def to_s
+	    @txDeps.each{|id,dep|
+	      
+	      puts "id: #{id} ,  dep: #{dep} \n---\n"
+	      }
+	  end
+
+  end
+end
+
+
+# futureComps = Array.new
+# futureComps << "ProcComponent"
+# futureComps << "PortalComponent"
+# 
+#  
+# pastComps = Array.new
+# pastComps << "AuthComponent"
+# pastComps << "ProcComponent"
+# 
+# tx_dep = Dea::TxDep.new(futureComps,pastComps)
+# 
+# tx_dep2 = Dea::TxDep.new(pastComps,futureComps)
+# registry = Dea::TxDepRegistry.new
+
+# puts registry
+# 
+# puts registry.getLocalDep("abc")
+# 
+# registry.addLocalDep("abc",tx_dep)
+# registry.addLocalDep("edf",tx_dep)
+# 
+# puts registry
+# 
+# puts registry.contains("agc")
+# puts registry.contains("abc")
+# 
+# registry.removeLocalDep("abc")
+# puts registry
+# 
