@@ -297,13 +297,12 @@ module Dea
         Download.new(attributes["buildpack_cache_download_uri"], workspace.workspace_dir, nil, logger).download! do |error, path|
           if error
             logger.error("---  Failed to download buildpack cache from #{attributes["buildpack_cache_download_uri"]}")
-           # logger.info("--- by zhang path=#{workspace.downloaded_buildpack_cache_path},dir=#{workspace.workspace_dir}")
-           # logger.info("--- by zhang ")
+            
           else
             File.rename(path, workspace.downloaded_buildpack_cache_path)
             File.chmod(0744, workspace.downloaded_buildpack_cache_path)
 
-            logger.debug("--- in download success!!! cache buildpack: Moved droplet to #{workspace.downloaded_buildpack_cache_path}")
+            logger.debug("---   download cache buildpack success!!! : Moved droplet to #{workspace.downloaded_buildpack_cache_path}")
           end
 
           p.deliver
@@ -405,7 +404,7 @@ module Dea
       prepare_workspace
 
       promises = [promise_app_download, promise_create_container]
-      logger.info("---Sunday: buildpack_cache_download_uri=#{attributes["buildpack_cache_download_uri"]}")
+      #logger.info("---Sunday: buildpack_cache_download_uri=#{attributes["buildpack_cache_download_uri"]}")
       promises << promise_buildpack_cache_download if attributes["buildpack_cache_download_uri"]
 
       Promise.run_in_parallel(*promises)

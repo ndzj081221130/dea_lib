@@ -82,6 +82,7 @@ module Dea
     end
 
     def memory_limit_in_bytes
+      #logger.info("zhang: config.minimum = #{config.minimum_staging_memory_mb}")
       (config.minimum_staging_memory_mb).to_i * 1024 * 1024
     end
     alias :used_memory_in_bytes :memory_limit_in_bytes
@@ -169,7 +170,7 @@ module Dea
 
     def promise_stage
       Promise.new do |p|
-logger.info("-3-- promise stage")
+	      logger.info("-3-- promise stage")
         script = [
           staging_environment,
           config["dea_ruby"],
@@ -178,9 +179,9 @@ logger.info("-3-- promise stage")
           ">> #{workspace.warden_staging_log} 2>&1"
         ].join(" ")
 
-        logger.info("---Staging: #{script}")
+        logger.info("-3--Staging: #{script}")
         time = staging_timeout + staging_timeout_grace_period
-        logger.info ("---Monday staging time = #{time}")
+        #logger.info ("-3-- staging time = #{time}")
         Timeout.timeout(staging_timeout + staging_timeout_grace_period) do
           promise_warden_run(:app, script).resolve
         end
@@ -199,7 +200,7 @@ logger.info("-3-- promise stage")
 
     def promise_staging_info
       Promise.new do |p|
-	logger.debug("-10--Today  in staging info")
+	      logger.debug("-10--  in staging info")
         copy_out_request(workspace.warden_staging_info, File.dirname(workspace.staging_info_path))
         logger.info "Staging task info: #{task_info}"
         p.deliver
@@ -222,7 +223,7 @@ logger.info("-3-- promise stage")
 
     def promise_pack_app
       Promise.new do |p|
-	logger.info("-4--packing app to #{workspace.warden_staged_droplet}")
+	      logger.info("-4--packing app to #{workspace.warden_staged_droplet}")
         promise_warden_run(:app, <<-BASH).resolve
           cd #{workspace.warden_staged_dir} &&
           COPYFILE_DISABLE=true tar -czf #{workspace.warden_staged_droplet} .
@@ -251,7 +252,7 @@ logger.info("-3-- promise stage")
 
     def promise_log_upload_started
       Promise.new do |p|
-        logger.debug("-6--Today  in droplet upload")
+        logger.debug("-6--   in droplet upload")
         promise_warden_run(:app, <<-BASH).resolve
           droplet_size=`du -h #{workspace.warden_staged_droplet} | cut -f1`
           echo "-----> Uploading staged droplet ($droplet_size)" >> #{workspace.warden_staging_log}
@@ -262,7 +263,7 @@ logger.info("-3-- promise stage")
     end
 
     def promise_app_upload
-	logger.debug("-7--Today  in app upload")
+	    logger.debug("-7--   in app upload")
       Promise.new do |p|
         Upload.new(workspace.staged_droplet_path, attributes["upload_uri"], logger).upload! do |error|
           if error
@@ -279,7 +280,7 @@ logger.info("-3-- promise stage")
       Promise.new do |p|
         Upload.new(workspace.staged_buildpack_cache_path, attributes["buildpack_cache_upload_uri"], logger).upload! do |error|
           if error
- 	    logger.info("-8-- Today by: got an error while uploading buildcache")
+ 	          logger.info("-8--  by: got an error while uploading buildcache")
             p.fail(error)
           else
             logger.info("-8-- Uploaded buildpack cache to #{attributes["buildpack_cache_upload_uri"]}")
@@ -295,14 +296,13 @@ logger.info("-3-- promise stage")
 
         Download.new(attributes["buildpack_cache_download_uri"], workspace.workspace_dir, nil, logger).download! do |error, path|
           if error
-            logger.error("--- by zhang: Failed to download buildpack cache from #{attributes["buildpack_cache_download_uri"]}")
-           # logger.info("--- by zhang path=#{workspace.downloaded_buildpack_cache_path},dir=#{workspace.workspace_dir}")
-           # logger.info("--- by zhang ")
+            logger.error("---  Failed to download buildpack cache from #{attributes["buildpack_cache_download_uri"]}")
+            
           else
             File.rename(path, workspace.downloaded_buildpack_cache_path)
             File.chmod(0744, workspace.downloaded_buildpack_cache_path)
 
-            logger.debug("---by zhang in download success!!! cache buildpack: Moved droplet to #{workspace.downloaded_buildpack_cache_path}")
+            logger.debug("---   download cache buildpack success!!! : Moved droplet to #{workspace.downloaded_buildpack_cache_path}")
           end
 
           p.deliver
@@ -311,6 +311,7 @@ logger.info("-3-- promise stage")
     end
 
     def promise_log_upload_finished
+      logger.debug("---9---in promise log upload finished")
       Promise.new do |p|
         promise_warden_run(:app, <<-BASH).resolve
           echo "-9----> Uploaded droplet" >> #{workspace.warden_staging_log}
@@ -332,7 +333,7 @@ logger.info("-3-- promise stage")
       Promise.new do |p|
 #
         raise ArgumentError, "container handle must not be nil" unless container_handle
-
+        logger.debug("zhang:in promise_container_info")
         request = ::Warden::Protocol::InfoRequest.new(:handle => container_handle)
         response = promise_warden_call(:info, request).resolve
 
@@ -344,7 +345,7 @@ logger.info("-3-- promise stage")
 
     def promise_save_buildpack_cache
       Promise.new do |p|
-logger.debug("-8--Today  in droplet upload")
+        logger.debug("-8--  in droplet upload")
         resolve(promise_pack_buildpack_cache, "pack buildpack cache") do |error, result|
           unless error
             promise_copy_out_buildpack_cache.resolve
@@ -403,7 +404,8 @@ logger.debug("-8--Today  in droplet upload")
       prepare_workspace
 
       promises = [promise_app_download, promise_create_container]
-      promises << promise_buildpack_cache_download if attributes["buildpack_cache_download_uri"]
+      #logger.info("---Sunday: buildpack_cache_download_uri=#{attributes["buildpack_cache_download_uri"]}")
+     # promises << promise_buildpack_cache_download if attributes["buildpack_cache_download_uri"]
 
       Promise.run_in_parallel(*promises)
       promise_limit_disk.resolve
@@ -436,6 +438,7 @@ logger.debug("-8--Today  in droplet upload")
       )
     ensure
       promise_task_log.resolve
+      logger.info("---zhang in resolve_staging ensure destroy_place 0 staging ")
       promise_destroy.resolve
     end
 
@@ -460,11 +463,11 @@ logger.debug("-8--Today  in droplet upload")
     end
 
     def staging_timeout
-      (staging_config["max_staging_duration"] || "1800").to_f
+      (staging_config["max_staging_duration"] || "18000").to_f
     end
 
     def staging_timeout_grace_period
-      600
+      6000
     end
 
     def staging_config

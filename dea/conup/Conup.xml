@@ -43,6 +43,9 @@
 		</component>
 		
 		
+		<component name="OneComponent" collect_port="8000">
+		 	 
+		</component>
 		
 		
 		
@@ -51,17 +54,17 @@
 			<parent>PaPaComponent</parent>
 		</component>
 		
-		<component name="DBComponent" collect_port="8001">
+		<!--<component name="DBComponent" collect_port="8001">
 			  <parent>ProcComponent</parent>  
-		</component>
+	</component>-->
 		
-		<component name="CallComponent" collect_port="8002">
+		<component name="CallComponent" collect_port="8001">
 			<parent>PaPaComponent</parent> 
 			<child>HelloworldComponent</child>
 			<!-- <child>DBComponent</child> -->
 		</component>
 		
-		<component name="PaPaComponent" collect_port="8003">
+		<component name="PaPaComponent" collect_port="8002">
 			<child>CallComponent</child>
 			<child>HelloworldComponent</child>	
 		</component>

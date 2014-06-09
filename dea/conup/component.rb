@@ -7,7 +7,7 @@ require "monitor"
 module Dea
   class ComponentObject
     attr_accessor :identifier #String
-    attr_accessor :componentVersion #String
+    attr_accessor :componentVersionPort #String
     
     attr_accessor :algorithmConf #String
     attr_accessor :freenessConf #string
@@ -32,17 +32,15 @@ module Dea
     attr_accessor :freezeSyncMonitor #sync object
     attr_accessor :freezeCondition
     
-    def initialize(id,version,algconf,freeConf, deps, indeps,impltype)
+    def initialize(id,versionPort,algconf,freeConf, deps, indeps,impltype)
       puts "called component initialized!!!"
       @identifier = id
-      @componentVersion = version
+      @componentVersionPort = versionPort
       @algorithmConf = algconf
       @freenessConf = freeConf
       @staticDeps = deps
       @staticInDeps = indeps
-      # puts "component : size = #{indeps.size}"
-      # indeps.each{|i| puts "i = #{i}"}
-      # @staticInDeps.each{|s| puts "s = #{s}"}
+       
       @implType = impltype
       @isTargetComp = false
       
@@ -77,7 +75,7 @@ module Dea
     end
     
     def to_s
-      str = "component [id: #{@identifier} , version:#{@componentVersion}, staticDeps:"
+      str = "component [id: #{@identifier} , version:#{@componentVersionPort}, staticDeps:"
       if @staticDeps
       @staticDeps.each{|dep|
         str += dep +"/"

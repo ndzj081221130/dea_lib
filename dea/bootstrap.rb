@@ -493,7 +493,7 @@ module Dea
         logger.info("Ignoring instance for non-production app: #{instance}")
         return
       end
-
+      puts "log before instance.start"
       instance.start
     end
 
@@ -708,7 +708,7 @@ module Dea
       app_id = message.data["droplet"].to_s
 
       if app_id
-        puts "app_id #{app_id}"
+        puts "filter: app_id #{app_id}"
         #logger.debug2("Filter message for app_id: %s" % app_id, :app_id => app_id)
       else
         logger.warn("Filter message missing app_id")
@@ -733,7 +733,7 @@ module Dea
 
       instances.each do |_, instance|
         matched = true
-
+        puts "instance_id: #{instance.instance_id}"
         matched &&= (instance.application_version == version) unless version.nil?
         matched &&= instance_ids.include?(instance.instance_id) unless instance_ids.nil?
         matched &&= indices.include?(instance.instance_index) unless indices.nil?

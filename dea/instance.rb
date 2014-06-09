@@ -257,11 +257,12 @@ module Dea
       @bootstrap = bootstrap
       @stats = "NORMAL"
       @oldRootTxs = Set.new
-      
+      puts "{instance initialize} #{bootstrap.config.bias}"
           port = Integer(bootstrap.config["collect_port"])
           bias = bootstrap.config.bias
           @new_port = port + bias
-      
+          bootstrap.config.bias += 1
+          
       @attributes = attributes.dup
       @attributes["application_uris"] ||= []
 
@@ -518,7 +519,7 @@ module Dea
 
     def start(&callback)
       p = Promise.new do
-        log(:info, " droplet.starting")
+        log(:info, "--droplet.starting, called 2ci???")
 
         promise_state(State::BORN, State::STARTING).resolve
 
@@ -563,12 +564,19 @@ module Dea
           self.state = State::CRASHED
           log(:warn, " error after start instance")
           log(:info, error.message)
-        else
-          puts "start instance succeed, start a collect_server here"
           
+          if @config.bias >= 1
+            @config.bias -= 1
+          end
+          
+        else
+          puts "start instance succeed, start a collect_server here on #{@new_port}, bias = #{@config.bias} , "
+          
+     #     puts @new_port#
           @collect_server = Dea::CollectServer.new(@config["collect_ip"],@new_port.to_s,@config,self)
            
-          @config.bias += 1
+          #@config.bias += 1
+         #  puts " bias : #{@config.bias} , #{@bootstrap.config.bias}"
           @collect_server.start # 如何记录下？？？ 在collect_server内部记录吧。
           
           

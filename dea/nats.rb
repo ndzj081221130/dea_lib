@@ -75,7 +75,7 @@ module Dea
         begin
           message = Message.decode(self, subject, raw_data, respond_to)
           logger.debug "Received on #{subject.inspect}: #{message.data.inspect}"
-          logger.debug "raw_data = #{raw_data},respond_to = #{respond_to}}"
+          #logger.debug "raw_data = #{raw_data},respond_to = #{respond_to}}"
           # puts respond_to == ""
           # puts respond_to == nil
           yield message
