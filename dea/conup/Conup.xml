@@ -21,34 +21,47 @@
 		 
 		 
 		<!-- paper sample-->
-		<component name="PortalComponent">
+		 
+		
+		<component name="PortalComponent" collect_port="8003">
 			<child>AuthComponent</child>
 			<child>ProcComponent</child>
 		</component>
 	
-		<component name="ProcComponent">
+		<component name="ProcComponent" collect_port="8002">
 			<parent>PortalComponent</parent>
-			<child>AuthComponent</child>
+			 
 			<child>DBComponent</child>
+			 
+			<child>AuthComponent</child>
+			
 		</component>
 		
 		<component name="AuthComponent" collect_port="8000">
-		<!--	<parent>PortalComponent</parent>
-			<parent>ProcComponent</parent> -->
+		 	<parent>PortalComponent</parent> 
+			<parent>ProcComponent</parent> 
 		</component>
 		
-		<component name="DBComponent">
-			<parent>ProcComponent</parent>
-		</component>
+		
+		
+		
+		
 		<component name="HelloworldComponent" collect_port="8000">
 			<parent>CallComponent</parent>
 			<parent>PaPaComponent</parent>
 		</component>
-		<component name="CallComponent" collect_port="8001">
+		
+		<component name="DBComponent" collect_port="8001">
+			  <parent>ProcComponent</parent>  
+		</component>
+		
+		<component name="CallComponent" collect_port="8002">
 			<parent>PaPaComponent</parent> 
 			<child>HelloworldComponent</child>
+			<!-- <child>DBComponent</child> -->
 		</component>
-		<component name="PaPaComponent" collect_port="8002">
+		
+		<component name="PaPaComponent" collect_port="8003">
 			<child>CallComponent</child>
 			<child>HelloworldComponent</child>	
 		</component>

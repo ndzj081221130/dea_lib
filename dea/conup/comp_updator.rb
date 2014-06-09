@@ -45,7 +45,7 @@ module Dea
         command = "cd #{@baseDir} && cf push"
         puts command
         tar_output = run_with_err_output(command)# command, or system will new a sub process??
-         puts "#{compIdentifier}.compUpdator , exe push result : #{tar_output}"
+        puts "#{compIdentifier}.compUpdator , exe push result : #{tar_output}"
         
         isUpdated= true
         return true

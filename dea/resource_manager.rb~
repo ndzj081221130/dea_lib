@@ -24,8 +24,6 @@ module Dea
     end
 
     def could_reserve?(memory, disk)
-	puts "memory = #{memory} , disk = #{disk}"
-	puts "remaining_memory = #{remaining_memory} , remaining_disk = #{remaining_disk}"
       (remaining_memory > memory) && (remaining_disk > disk)
     end
 
