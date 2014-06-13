@@ -4,6 +4,7 @@ require "steno"
 require "steno/core_ext"
 require "securerandom"
 require "set"
+require 'minitest/autorun'
 require_relative "./tx_context"
 require_relative "./component"
 require_relative "./tx_registry"
@@ -27,7 +28,12 @@ module Dea
     attr_accessor :curCachedTxContext#这个是记录该构件是被其他构件调用的，还是直接被用户调用的
     
     attr_accessor :tx_invocation_hash
+    
+    include MiniTest
+    
     def notifyCache(invocationContext)
+      
+      puts "notified to cahce #{invocationContext}"
       @InvocationContexts << invocationContext
       
     end
@@ -58,7 +64,7 @@ module Dea
      #else we new a txContext and add <getThreadID(), txContext > to InterceptorCache
       txContext = Dea::TxContext.new
       txContextCalViaCache = Dea::TxContext.new
-      
+      puts "what?#{@InvocationContexts}"
       if @InvocationContexts.size < 1
         
         puts "tx_lifecycle_mgr: no cache context，当前事务是根事务"
@@ -206,12 +212,13 @@ module Dea
       return @txRegistry.getTransactionContexts()
     end
     #called by who ??? 显然时被txDepMonitor调用啊
-    def rootTxEnd(hostComp, rootid)
-       puts "tx_lifecycle_mgr.rootTxEnd: hostComp = #{hostComp}"
-       compObject = Dea::NodeManager.instance.getComponentObject(hostComp)
-       compLifecycleMgr = Dea::NodeManager.instance.getCompLifecycleManager(hostComp)
+    def rootTxEnd(hostComp,port, rootid) #TODO need testing
+      key  = hostComp + ":" + port.to_s
+       puts "tx_lifecycle_mgr.rootTxEnd: hostComp = #{hostComp} , port = #{port}"
+       compObject = Dea::NodeManager.instance.getComponentObject(key)
+       compLifecycleMgr = Dea::NodeManager.instance.getCompLifecycleManager(key)
        # puts "tx_lifecycle_mgr: compLifecycleMgr.nil? #{compLifecycleMgr == nil}"
-       updateMgr = Dea::NodeManager.instance.getUpdateManager(hostComp)
+       updateMgr = Dea::NodeManager.instance.getUpdateManager(key)
        #   get update manager
        validToFreeSyncMonitor = compLifecycleMgr.compObj.validToFreeSyncMonitor
        puts "tx_lifecycle_mgr: txID= #{rootid} , hostComp: #{hostComp}, compStatus: #{compLifecycleMgr.compStatus}"
@@ -243,9 +250,10 @@ module Dea
     def initLocalSubTx(hostComp,fakeSubTx, txContextCache) # String , String , TransactionContext txCtxInCache
         puts "txLifecycleMgr.initLocalSubTx , fakeSubTx = #{fakeSubTx}"
         puts "#{@compObject.identifier}.tx_lifecycle_mgr : initLocalSubTx"
-        depMgr = Dea::NodeManager.instance.getDynamicDepManager(@compObject.identifier)
+        key = @compObject.identifier + ":" + @compObject.componentVersionPort.to_s
+        depMgr = Dea::NodeManager.instance.getDynamicDepManager(key)
          	 
-        txDepMonitor = Dea::NodeManager.instance.getTxDepMonitor(@compObject.identifier)
+        txDepMonitor = Dea::NodeManager.instance.getTxDepMonitor(key)
         
         txDepRegistry = txDepMonitor.txDepRegistry
                 
@@ -291,11 +299,12 @@ module Dea
         
         #这个方法是在traceInterceptor中调用的，在reference阶段，经过txInterceptor和bufferInterceptor之后，
         # 如果是service端，如果是子事务，调用endocalSubTx；如果是reference端，调用endRemoteSubTx
-        depMgr = Dea::NodeManager.instance.getDynamicDepManager(@compObject.identifier)
+        key = @compObject.identifier + ":" + @compObject.componentVersionPort.to_s 
+        depMgr = Dea::NodeManager.instance.getDynamicDepManager(key)
         
-        compLifecycleMgr = Dea::NodeManager.instance.getCompLifecycleManager(@compObject.identifier)
+        compLifecycleMgr = Dea::NodeManager.instance.getCompLifecycleManager(key)
       
-        txDepMonitor = Dea::NodeManager.instance.getTxDepMonitor(@compObject.identifier)
+        txDepMonitor = Dea::NodeManager.instance.getTxDepMonitor(key)
       
         txDepRegistry = txDepMonitor.txDepRegistry
       
@@ -395,11 +404,25 @@ module Dea
       # 还是应该通知papa，startRemoteSubTx
       puts "tx_lifecycle_mgr: startRemoteSubTx"
       #  need testing ， 这个方法只在createInvocation方法中被调用了
-      hostComp = invocationCtx.parentComp
-      ddm = Dea::NodeManager.instance.getDynamicDepManager(hostComp)
+      hostComp = invocationCtx.parentComp # this not equals to current Component???
+      
+      #assert_equal(hostComp,@compObject.identifier)
+      #TODO testing 
+      if hostComp == @compObject.identifier
+        puts "hostComp = identifier"
+      else
+        puts "!!!error , in start RemoteSubTx"
+        
+        
+      end
+      
+      
+      key = @compObject.identifier + ":" + @compObject.componentVersionPort.to_s
+      
+      ddm = Dea::NodeManager.instance.getDynamicDepManager(key)
        
        
-      compLifecycleMgr = Dea::NodeManager.instance.getCompLifecycleManager(hostComp)
+      compLifecycleMgr = Dea::NodeManager.instance.getCompLifecycleManager(key)
       
       ddm.notifySubTxStatus(Dea::TxEventType::TransactionStart,invocationCtx,compLifecycleMgr,nil)
       
@@ -409,9 +432,17 @@ module Dea
       
       hostComp = invocationCtx.parentComp
 #         need testing
-      puts "#{hostComp}.tx_lifecycle_mgr: endRemoteSubTx" # 但是这个方法在traceInterceptor中被调用了
-      depMgr = Dea::NodeManager.instance.getDynamicDepManager(hostComp)
-      compLifecycleMgr = Dea::NodeManager.instance.getCompLifecycleManager(hostComp)
+      #assert_equal(hostComp,@compObject.identifier)
+      if hostComp == @compObject.identifier
+        puts "equal"
+      else
+        puts "!!!error!! in endRemoteSubTx"
+      end
+      key = @compObject.identifier + ":" + @compObject.componentVersionPort.to_s
+      
+      puts "#{hostComp}.tx_lifecycle_mgr: endRemoteSubTx , key = #{key}" # 但是这个方法在traceInterceptor中被调用了
+      depMgr = Dea::NodeManager.instance.getDynamicDepManager(key)
+      compLifecycleMgr = Dea::NodeManager.instance.getCompLifecycleManager(key)
       
       return depMgr.notifySubTxStatus(TxEventType::TransactionEnd,invocationCtx,compLifecycleMgr,proxyRootTxId)
     end

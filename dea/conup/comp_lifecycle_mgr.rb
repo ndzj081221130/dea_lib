@@ -20,6 +20,8 @@ module Dea
       @compStatus =  CompStatus::NORMAL
       @compStatus.extend(MonitorMixin)
       @instance = instance
+      
+      @keyGet = @compObj.identifier + ":" + @compObj.componentVersionPort.to_s
     end
      
     
@@ -30,7 +32,7 @@ module Dea
     def isReadyForUpdate #  to be test thoroughly
       # nodemanger.getDynamicDepMgr
       #ddm is  , and needs to setAlgorith and setCompObj
-      ddm = NodeManager.instance.getDynamicDepManager(@compObj.identifier)
+      ddm = NodeManager.instance.getDynamicDepManager(@keyGet)
       puts "comp_lifecycle_mgr: ddm.isReady? #{ddm.isReadyForUpdate}"
       return (@compStatus  == CompStatus::VALID && ddm.isReadyForUpdate) || @compStatus == CompStatus::FREE  
     end

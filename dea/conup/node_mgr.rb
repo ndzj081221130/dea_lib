@@ -1,6 +1,7 @@
 #UTF-8
 require 'singleton'
 require 'monitor'
+require 'set'
 require_relative "./ondemand_setup_helper"
 require_relative "./ondemand_setup"
 
@@ -14,7 +15,7 @@ module Dea
     attr_accessor :syncMonitor
      
     attr_accessor :ondemandHelpers 
-    attr_accessor :compObjects
+    attr_accessor :compObjects # Hash < id:port, ComponentObject >
     # attr_accessor :instance
     
     def initialize
@@ -29,29 +30,65 @@ module Dea
       @syncMonitor.extend(MonitorMixin)
     end
     
-    def getComponentObject(identifier)
+    def removeComponentsViaName(name)
+      
+      @compObjects.delete_if{|key,instance| instance.identifier == name}  
+    end
+    
+    def getComponentsViaName(name)
+      
+      resultPorts = Set.new
+       @compObjects.each{|key,comp|
+         puts comp
+         if comp.identifier == name
+           
+           resultPorts << comp.componentVersionPort
+         end
+         }
+      resultPorts
+    end
+    
+    def getAllPorts
+      
+      resultPorts = Set.new
+      
+       @compObjects.each{|comp|
+         
+           resultPorts << comp.componentVersionPort
+           
+         }
+      resultPorts
+    end
+    
+    
+    def getComponentObject(identifier) #TODO changed ,testing , here identifier = name +":" + port
+      #identifier  use to be string , here we need it be int(port)
+      # or use string+port?
+      #puts "identifier #{identifier}"
       #puts @compObjects
       return @compObjects[identifier]
     end
     
-    def addComponentObject(identifier,compObj)
+    def addComponentObject(identifier,compObj)#TODO changed ,testing
       # puts identifier
       # puts compObj
       @compObjects[identifier] = compObj
       # puts @compObjects
     end
     
-    def removeCompObjectViaId(identifier)
+    def removeCompObjectViaId(identifier) 
       @compObjects.delete identifier
       @depMgrs.delete identifier
       @ondemandHelpers.delete identifier
     end
     
-    def removeCompObject(compObject)
-      removeCompObjectViaId(compObject.identifier)
+    def removeCompObject(compObject) #TODO changed ,testing
+      key = compObject.identifier  + ":" + compObj.componentVersionPort.to_s 
+      removeCompObjectViaId(key)
     end
+    
     #   getCompLifecycleManager
-    def getCompLifecycleManager(compIdentifier)
+    def getCompLifecycleManager(compIdentifier) #here id = name+port
       compObj = nil
       compLifecycleMgr = nil
       @syncMonitor.synchronize do
@@ -90,6 +127,7 @@ module Dea
       @syncMonitor.synchronize do
         compObj = getComponentObject(identifier)
         if compObj ==nil
+          puts "comp nil ? "
           return nil
         end
         
@@ -171,6 +209,8 @@ module Dea
           return nil
         end
         if !@txDepMonitors.include? compObj
+          puts "TxDepMonitor not found."
+          puts @txDepMonitors
           raise RuntimeError.new,"TxDepMonitor not found."
         else
           txDepMonitor = @txDepMonitors[compObj]
@@ -196,12 +236,12 @@ module Dea
     #{"HelloworldComponent"=>component [id: HelloworldComponent , version:1.0, staticDeps:,staticInDeps:CallComponent/, isTargetComp:false]}
 # nodeMgr: in getUpdateMgr, compObj = nil for component [id: HelloworldComponent , version:1.0, staticDeps:,staticInDeps:CallComponent/, isTargetComp:false]
 
-    def getUpdateManager(identifier)
+    def getUpdateManager(identifierKey)
       updateMgr = nil
       @syncMonitor.synchronize do  
-        compObj = getComponentObject(identifier)
+        compObj = getComponentObject(identifierKey)
         if compObj == nil
-          puts "nodeMgr: in getUpdateMgr, compObj = nil for #{identifier}"
+          #puts "nodeMgr: in getUpdateMgr, compObj = nil for #{identifierKey}"
           return nil 
         end
         

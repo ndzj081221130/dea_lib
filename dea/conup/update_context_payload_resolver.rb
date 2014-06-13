@@ -17,7 +17,7 @@ module Dea
       return @parameters[paraType]
     end
     
-    # resolve payload
+    # resolve pay load
     def resolve(payload)
       keyValues = payload.split(/,/)
       # puts keyValues.size

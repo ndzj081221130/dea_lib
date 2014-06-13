@@ -21,7 +21,11 @@ module Dea
       subscribe("healthmanager.start") do |message|
         bootstrap.handle_health_manager_start(message)
       end
-
+      
+      subscribe("router.remote") do |message|
+        bootstrap.handle_remote_msg(message)        
+      end
+      
       subscribe("router.start") do |message|
         
         # puts "nats : router.start message= #{message}"

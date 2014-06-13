@@ -572,11 +572,14 @@ module Dea
         else
           puts "start instance succeed, start a collect_server here on #{@new_port}, bias = #{@config.bias} , "
           
-     #     puts @new_port#
-          @collect_server = Dea::CollectServer.new(@config["collect_ip"],@new_port.to_s,@config,self)
+      
+          @collect_server = Dea::CollectServer.new(@config["collect_ip"],
+                                 @new_port.to_s,
+                                 @config,
+                                 
+                                 self)
            
-          #@config.bias += 1
-         #  puts " bias : #{@config.bias} , #{@bootstrap.config.bias}"
+         
           @collect_server.start # 如何记录下？？？ 在collect_server内部记录吧。
           
           

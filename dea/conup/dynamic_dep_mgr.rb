@@ -2,6 +2,9 @@
 # conup-core
 require "steno"
 require "steno/core_ext"
+require 'minitest/spec'
+require 'minitest/autorun'
+
 require_relative "./dep_registry"
 require_relative "./tx_lifecycle_mgr"
 require_relative "./comp_lifecycle_mgr"
@@ -29,6 +32,9 @@ module Dea
       @outDepRegistry = Dea::DependenceRegistry.new
       @compObj = compObject 
       @algorithm = Dea::VersionConsistency.new
+      
+      @keyGet = @compObj.identifier + ":" + @compObj.componentVersionPort.to_s
+       
 	    # @compLifecycleMgr = Dea::CompLifecycleManager.instance(@compObj)
       # @txLifecycleMgr = Dea::TxLifecycleManager.instance(identifier)
       #  这两个变量也不从这里获得，而是在nodeMgr.getDepManager时设置。
@@ -36,13 +42,21 @@ module Dea
      
     
     def dependenceChanged(hostComp) # String
+      
+      #assert_equal(hostComp,@compObj.identifier)
+      
+      if hostComp== @compObj.identifier
+        puts "in dependenceChanged, equal !"
+      else
+        puts "!!!error not equal"
+      end
       if @compObj.isTargetComp
         # TODO get UpdateManager and updateManager.checkFreeness
         puts "ddm dependenceChanged , call updateMgr.checkFreeness"
-        updateManager = NodeManager.instance.getUpdateManager(hostComp)
-        updateManager.checkFreeness(hostComp)
+        updateManager = NodeManager.instance.getUpdateManager(@keyGet)
+        updateManager.checkFreeness(@keyGet)
       else
-        puts "ddm.dependenceChanged, #{hostComp} not target , cause not received update request "
+        puts "ddm.dependenceChanged, #{@keyGet} not target , cause not received update request "
       end
     end
     
@@ -73,7 +87,7 @@ module Dea
     
     def getTxLifecycleMgr
       # return NodeManager...generate(TxLifecycleMgr)
-      @txLifecycleMgr = Dea::NodeManager.instance.getTxLifecycleManager(@compObj.identifier)
+      @txLifecycleMgr = Dea::NodeManager.instance.getTxLifecycleManager(@keyGet)
        
       return @txLifecycleMgr
     end

@@ -7,6 +7,8 @@ module Dea
   class DepPayload
     
     SRC_COMPONENT="SRC_COMPONENT"
+    SRC_PORT = "SRC_PORT"
+    
     TARGET_COMPONENT="TARGET_COMPONENT"
     
     ROOT_TX="ROOT_TX"

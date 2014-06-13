@@ -11,8 +11,7 @@ module Dea
         result = Dea::UpdateContextPayload::OPERATION_TYPE + ":" + args[0]
         return result
       elsif args.size == 2
-        # type = args.shift
-        # id = args.shift
+        
         result = Dea::UpdateContextPayload::OPERATION_TYPE + ":" + args[0] + "," + 
                  Dea::UpdateContextPayload::COMP_IDENTIFIER + ":" + args[1]
         return result   
@@ -23,18 +22,17 @@ module Dea
         end        
         
         return result
-      elsif args.size == 6
+      elsif args.size == 4
          result = Dea::UpdateContextPayload::OPERATION_TYPE + ":" + args[0] + "," + 
                  Dea::UpdateContextPayload::COMP_IDENTIFIER + ":" + args[1] + "," + 
                  Dea::UpdateContextPayload::BASE_DIR + ":" + args[2] + "," + 
-                 Dea::UpdateContextPayload::CLASS_FILE_PATH + ":" + args[3] + "," + 
-                 Dea::UpdateContextPayload::CONTRIBUTION_URI + ":" + args[4] + "," +
-                 Dea::UpdateContextPayload::COMPOSITE_URI + ":" + args[5]
+            
+                  Dea::UpdateContextPayload::COMPOSITE_URI + ":" + args[3]
          return result        
-      elsif args.size == 7 
-        result = createPayload(args[0],args[1],args[2],args[3],args[4],args[5])
-        if args[6] != nil
-          result += "," + Dea::UpdateContextPayload::SCOPE + ":" + args[6].to_s
+      elsif args.size == 5 
+        result = createPayload(args[0],args[1],args[2],args[3])
+        if args[4] != nil
+          result += "," + Dea::UpdateContextPayload::SCOPE + ":" + args[4].to_s
           
         end
         return result

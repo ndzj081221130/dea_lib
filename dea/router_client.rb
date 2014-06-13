@@ -42,6 +42,7 @@ module Dea
         "private_instance_id" => instance.private_instance_id,
         "stats" => instance.stats,
         "roots" => instance.oldRootTxs.to_a,
+        "collect_port" => instance.new_port.to_s,
       }
     end
 

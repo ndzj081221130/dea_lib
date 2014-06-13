@@ -35,7 +35,7 @@ module Dea
         #send_data(data)
 
         puts "port : #{@configPort  } received data:"
-        puts data
+        #puts data
 
         handle = data[2,data.length] # there are two unknown chars
         puts handle
@@ -72,10 +72,12 @@ module Dea
           ind = @json["indeps"]
 
           ind.each{|i| indeps << i}
-          if Dea::NodeManager.instance.getComponentObject(name) != nil
+          key = name + ":" + @configPort.to_s
+          puts "key = #{key}"
+          if Dea::NodeManager.instance.getComponentObject(key) != nil
             puts "collect_server called getComponentObject"
-            comp = Dea::NodeManager.instance.getComponentObject(name)           
-            comp.componentVersion = version
+            comp = Dea::NodeManager.instance.getComponentObject(key)           
+            comp.componentVersionPort = @configPort
             comp.algorithmConf  = alg
             comp.freenessConf = freeConf
             comp.staticDeps = deps
@@ -83,26 +85,29 @@ module Dea
             comp.implType = implType
             
           else
-            comp  = Dea::ComponentObject.new(name,version,alg,freeConf,deps,indeps,implType)
+            
+            puts "new comp"
+            comp  = Dea::ComponentObject.new(name,@configPort,alg,freeConf,deps,indeps,implType)
             node = Dea::NodeManager.instance
             
-            node.addComponentObject(name,comp)
+            
+            node.addComponentObject(key,comp)
             compLifeMgr = Dea::CompLifecycleManager.new(comp,@instance)
-            node.setCompLifecycleManager(name,compLifeMgr)
+            node.setCompLifecycleManager(key,compLifeMgr)
             
             txLifecycleMgr = Dea::TxLifecycleManager.new(comp)
-            node.setTxLifecycleManager(name,txLifecycleMgr)
+            node.setTxLifecycleManager(key,txLifecycleMgr)
             
             txDepMonitor = Dea::TxDepMonitor.new(comp)
-            node.setTxDepMonitor(name,txDepMonitor)
+            node.setTxDepMonitor(key,txDepMonitor)
             
-            depMgr = node.getDynamicDepManager(name)#Dea::DynamicDepManager.new(comp)
+            depMgr = node.getDynamicDepManager(key) 
             depMgr.txLifecycleMgr= txLifecycleMgr
             depMgr.compLifecycleMgr= compLifeMgr
             
-            node.getOndemandSetupHelper(name)
+            node.getOndemandSetupHelper(key)
             
-            updateMgr = node.getUpdateManager(name)
+            updateMgr = node.getUpdateManager(key)
             updateMgr.instance = @instance
           end
           
@@ -113,7 +118,7 @@ module Dea
           comp.staticDeps = deps
           comp.staticInDeps = indeps
 
-          txMonitor = Dea::NodeManager.instance.getTxDepMonitor(name)
+          txMonitor = Dea::NodeManager.instance.getTxDepMonitor(key)
           
           # 
           # if txCtx.getRootTx != nil
@@ -128,9 +133,10 @@ module Dea
               #这里总是可以知道tx——id的吧
               name = @json["name"]
               transaction_id = @json["transaction_id"]
-              txLifecycleMgr = Dea::NodeManager.instance.getTxLifecycleManager(name)
+              keyEnd = name + ":" + @configPort.to_s
+              txLifecycleMgr = Dea::NodeManager.instance.getTxLifecycleManager(key)
               invocationCtx = txLifecycleMgr.tx_invocation_hash[transaction_id]
-              #txLifecycleMgr.curCachedInvocationContext
+          
               
               
               if invocationCtx == nil || invocationCtx.subTx == nil #&& transaction_id #为啥总有
@@ -184,9 +190,9 @@ module Dea
             #{name}.
             puts "collect_server send data back , rootTx = #{rootTx}"
             send_data(rootTx)
-            # close_connection
+             
             close_connection_after_writing # why shutdown?
-            # send_data("end")#//""
+           
           end
           
           if eventType == Dea::TxEventType::FirstRequestService
@@ -202,12 +208,12 @@ module Dea
             msg["parentTx"]	= transaction_id
             msg["parentComponent"] = name
             msg["rootTx"] = transaction_id
-            msg["rootComponent"] = 	name
+            msg["rootComponent"] = 	name # is this right???
             msg["target_comp"] = target
             puts "other_dea_ip = #{other_dea_ip}"
             puts "other_dea_port #{other_dea_port}"  
             # 在createInvocation中， 调用startRemoteSubTx方法，
-            invocationCtx = Dea::NodeManager.instance.getTxLifecycleManager(name).createInvocation(name,target,txDepMonitor)
+            invocationCtx = Dea::NodeManager.instance.getTxLifecycleManager(key).createInvocation(name,target,txDepMonitor)
             #这里显然应该有subFakeTx了啊                       
             msg["invocation_context"] = invocationCtx
             puts "collect_server : FirstRequest , invocationCtx = #{invocationCtx}" 
@@ -219,8 +225,7 @@ module Dea
             send_data(result)
             close_connection_after_writing # why shutdown?
             
-          #elsif eventType == Dea::TxEventType::TransactionStart
-             
+              
             
           elsif eventType == Dea::TxEventType::TransactionEnd #通知父节点，子事务结束。
                
@@ -234,14 +239,15 @@ module Dea
         elsif @json["rootTx"] != nil && @json["target_comp"] != nil 
           #这里是hello接受到call-dea发来的消息，call通知hello，关于InvocationContxt
         #  this is a sync msg ,so we need reply 
-          puts "collect_server : i need to notify subComp to cache invocationCtx"
+          puts "collect_server : i get notify  to cache invocationCtx from parent  "
           parentTx = @json["parentTx"]
           parentC = @json["parentComponent"]
+          parentPort = @json["parentPort"]
           rootTx = @json["rootTx"]
           rootC = @json["rootComponent"]
           target = @json["target_comp"] 
           invocationCtxFromHeader = @json["invocation_context"]
-          
+          puts "onvocationCtxFrom header #{invocationCtxFromHeader}"
 #           问题时，invocationContext中的fakeTx是怎么回事?主要是，call生成一个fakeSubTX，因为此时，call不知道hell的tx
 
           # invocationContext = Dea::InvocationContext.new(rootTx,rootC,parentTx,parentC,"","","")
@@ -251,68 +257,75 @@ module Dea
              #为什么需要Call给hello建component！！反正instance启动的时候，会建立的。
              #不对，还是要发个请求，到collect_server。才会建立的。
              name = target
-             if Dea::NodeManager.instance.getComponentObject(name) == nil
-                  puts "collect_server: component.nil??? "
-                  comp = Dea::ComponentObject.new(target,version,alg,freeConf,deps,indeps,implType)
+             key = name + ":" + @configPort.to_s
+             if Dea::NodeManager.instance.getComponentObject(key) == nil
+                  puts "collect_server: component.nil #{key} "
+                  comp = Dea::ComponentObject.new(target,@configPort,alg,freeConf,deps,indeps,implType)
                  #  一旦建立comp，就要建立一堆东西，否则，会取到空指针的
                 # txLifecycleMgr = Dea::TxLifecycleManager.new(target)
                 
                   node = Dea::NodeManager.instance
                   
-                  node.addComponentObject(name,comp)
+                  node.addComponentObject(key,comp)
                   compLifeMgr = Dea::CompLifecycleManager.new(comp,@instance)
-                  puts  "here???"
+                  #puts  "here???"
                   
-                  node.setCompLifecycleManager(name,compLifeMgr)
+                  node.setCompLifecycleManager(key,compLifeMgr)
                   
                   txLifecycleMgr = Dea::TxLifecycleManager.new(comp)
-                  node.setTxLifecycleManager(name,txLifecycleMgr)
+                  node.setTxLifecycleManager(key,txLifecycleMgr)
                   
                   txDepMonitor = Dea::TxDepMonitor.new(comp)
-                  node.setTxDepMonitor(name,txDepMonitor)
+                  node.setTxDepMonitor(key,txDepMonitor)
                   
-                  depMgr = node.getDynamicDepManager(name)#Dea::DynamicDepManager.new(comp)
+                  depMgr = node.getDynamicDepManager(key)#Dea::DynamicDepManager.new(comp)
                   depMgr.txLifecycleMgr= txLifecycleMgr
                   depMgr.compLifecycleMgr= compLifeMgr
                   
-                  node.getOndemandSetupHelper(name)
-                  updateMgr = node.getUpdateManager(name)
+                  node.getOndemandSetupHelper(key)
+                  updateMgr = node.getUpdateManager(key)
                   updateMgr.instance = @instance
             else
                 puts "collect_server , component not nil"
-                txLifecycleMgr = Dea::NodeManager.instance.getTxLifecycleManager(name)
-             end
+                txLifecycleMgr = Dea::NodeManager.instance.getTxLifecycleManager(key)
+            end
              
-         
+          
             
             invocationContext = InvocationContext.getInvocationCtx(invocationCtxFromHeader)
             txLifecycleMgr.notifyCache(invocationContext)
             # 走到这里，显然说明，不是一个根事务啊
-            Dea::NodeManager.instance.getTxLifecycleManager(target).resolveInvocationContext(invocationContext,name) 
+            Dea::NodeManager.instance.getTxLifecycleManager(key).resolveInvocationContext(invocationContext,name) 
             send_data("resolve done")
             
         elsif @json["subTx"] != nil #这个条件够不？
           sub = @json["subComp"]
           subTx = @json["subTx"]
           name = @json["parentComp"]
+          
+          key = name + ":" + @configPort.to_s
+          
           puts "#{name}.collect_server :get msg from subComp that subTx ended , thus call endRemoteSubTx" 
           #获得子节点，通知子事务结束，调用
 
           invocationCtx = InvocationContext.getInvocationCtx(@json["invocation_ctx"]) #invocation_ctx
           #这里的proxy_root_Tx_id是shenme？？？
-          #果然是proxy_root_tx_id计算不对啊。。为啥在这里？？？
+          #果然是proxy_root_tx_id计算 , cal root tx
           proxyRootTxId = @json["proxy_root_tx_id"]
           if sub  != name
             
-            txLifecycleMgr = Dea::NodeManager.instance.getTxLifecycleManager(name)
+            txLifecycleMgr = Dea::NodeManager.instance.getTxLifecycleManager(key)
             rootTx = @json["rootTx"]
-            puts "#{name} .collect_server : call endRemoteSubTx"
-            
-            txLifecycleMgr.endRemoteSubTx(invocationCtx,proxyRootTxId)
+            puts "#{name}.collect_server : call endRemoteSubTx , key = #{key}"
+            if txLifecycleMgr
+              txLifecycleMgr.endRemoteSubTx(invocationCtx,proxyRootTxId)
+            else
+              puts "collect_server : txLifecycleMgr==nil"
+            end
           end
           
           send_data("#{name} end remote subTx from #{sub}")
-        elsif @json["msgType"] != nil #这里是接受到更新请求,不对，还有来自hello通知call的消息呢？
+        elsif @json["msgType"] != nil #这里是接受到更新请求, 还有来自hello通知call的消息呢？
           puts "collect_server : from remote conf   or msg_dependence"
           request = Dea::RequestObject.new
           request.commType= @json["commType"]
@@ -325,7 +338,8 @@ module Dea
           
           puts "payload = #{request.payload}" 
           puts "collect_server : conf : #{  id }"
-          updateMgr = Dea::NodeManager.instance.getUpdateManager(id)
+          key = id +":" + @configPort.to_s #TODO testing
+          updateMgr = Dea::NodeManager.instance.getUpdateManager(key)
           result = updateMgr.processMsg(request)
           
           puts "collect_server : msgType!=nil , result = #{result}"
@@ -334,6 +348,7 @@ module Dea
         else
           
           puts "well, how should I handle this ? "  
+          send_data("unkonw command")
         end
  
       end

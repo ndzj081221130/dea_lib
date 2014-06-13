@@ -1,9 +1,9 @@
 require_relative "../conup/client"
-require_relative "../conup/client_sync"
+require_relative "../conup/client_sync_response"
 require_relative "./constant"
 require "json"
  require_relative "../conup/client_sync_close"
-
+require 'eventmachine'
 ip="192.168.12.34"
 port="8000"
             
@@ -24,9 +24,13 @@ fComps = Array.new
 
 msg["FutureComps"] = fComps
 msg["transaction_id"] = Cons::Hello_Tx_Id
-msg["instance_id"] = "161fe621ae527f40c2075f59682453e1"
+msg["instance_id"] = Cons::Hello_Instance_Id
 ref = msg.to_json      
 
 
-Dea::ClientSyncClose.new(ip,port,ref)
+client = Dea::ClientSyncResponse.new(ip,port,ref)
+res = client.q
+res.push "a"
+puts "res = #{res} , res.size = #{res.size} \n\n"
 
+ puts client.response

@@ -4,9 +4,9 @@ require_relative "../conup/remote_conf"
 
 rcs = Dea::RemoteConf.new
 ip = "192.168.12.34"
-targetIdentifier = "CallComponent"
+targetIdentifier = "HelloworldComponent"
 port = "8001"
-baseDir ="/vagrant/test/call-helloworld2"
+baseDir ="/vagrant/test/helloworld-jsonrpc2"
 classFilePath=""
 contributionUri=""
 compositeUri=""

@@ -20,12 +20,14 @@ module Dea
     attr_accessor :compIdentifier #string
     attr_accessor :compObj
     
- 
+    
     def initialize(componentObject) # component is a componentObject
       @txDepRegistry = Dea::TxDepRegistry.new
       @compIdentifier = componentObject.identifier
       @compObj = componentObject
-      @txLifecycleMgr = Dea::NodeManager.instance.getTxLifecycleManager(@compIdentifier)
+      key = @compIdentifier + ":" + componentObject.componentVersionPort.to_s
+      
+      @txLifecycleMgr = Dea::NodeManager.instance.getTxLifecycleManager(key)
      
     end
    
@@ -45,8 +47,8 @@ module Dea
       # check txContext!=nil
       #   testing get a ondemandMonitor and 修改eventType
       
-       
-      compLifecycleMgr = Dea::NodeManager.instance.getCompLifecycleManager(@compObj.identifier)
+       key = @compObj.identifier + ":" + @compObj.componentVersionPort.to_s
+      compLifecycleMgr = Dea::NodeManager.instance.getCompLifecycleManager(key)
       ondemandMonitor = @compObj.ondemandSyncMonitor
       
       ondemandMonitor.synchronize do
@@ -57,8 +59,8 @@ module Dea
       txDep = TxDep.new(futureC , pastC)
       
       @txDepRegistry.addLocalDep(curTxID,txDep)
-      
-      dynamicDepMgr = Dea::NodeManager.instance.getDynamicDepManager(@compIdentifier)
+      key = @compObj.identifier + ":" + @compObj.componentVersionPort.to_s
+      dynamicDepMgr = Dea::NodeManager.instance.getDynamicDepManager(key)
                  
       result = dynamicDepMgr.manageTx(txContext)
       puts "tx_dep_monitor: ddm.manageTx result = #{result}"
@@ -70,7 +72,7 @@ module Dea
         
         ## testing : call update manager attempToUpdate  
         
-        updateMgr = Dea::NodeManager.instance.getUpdateManager(@compIdentifier)
+        updateMgr = Dea::NodeManager.instance.getUpdateManager(key)
         
         if compLifecycleMgr.compStatus == Dea::CompStatus::VALID && updateMgr.isDynamicUpdateRqstRCVD()
           puts "tx_dep_monitor: call updateMgr.attemptToUpdate"

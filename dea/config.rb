@@ -41,6 +41,8 @@ module Dea
           "index" => Integer,
           "collect_port" => Integer,
           "collect_ip" => String,
+          "query_ip" => String,
+          "query_port" => Integer,
           "directory_server" => {
             "v1_port" => Integer,
             "v2_port" => Integer,

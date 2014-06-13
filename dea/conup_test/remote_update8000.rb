@@ -4,24 +4,15 @@ require_relative "../conup/remote_conf"
 
 rcs = Dea::RemoteConf.new
 ip = "192.168.12.34"
-targetIdentifier = "HelloworldComponent"
-port = "8000"
-baseDir ="/vagrant/test/helloworld-jsonrpc2"
+targetIdentifier = "DBComponent"
+port = "8001"
+baseDir ="/vagrant/test/helloworld-db2"
 classFilePath=""
 contributionUri=""
 compositeUri=""
-# 
- protocol = "CONSISTENCY"
-# rcs.ondemand(ip,port,targetIdentifier,protocol,nil)
 
-  #  def run_with_err_output(command)
-   #   %x{ #{command} 2>&1 }
-   # end
-    
-    #    command = "cd #{baseDir} && cf push"
-     #   puts command
-      #   tar_output = run_with_err_output(command)# command, or system will new a process??
-       #  puts "#{compIdentifier}.compUpdator , exe push result : #{tar_output}"
+ protocol = "CONSISTENCY" 
+ 
 
-  rcs.update(ip,port,targetIdentifier,protocol,baseDir,classFilePath,contributionUri,compositeUri,nil)
+  rcs.update(ip,port,targetIdentifier,protocol,baseDir,compositeUri,nil)
 

@@ -21,11 +21,11 @@ module Dea
       Dea::BlockingFreenessStrategy::BLOCKING
     end
     
-    def isInterceptRequiredForFree(rootTx,compIdentifier,txCtx,isUpdateRCVD)
+    def isInterceptRequiredForFree(rootTx,compIdentifierKey,txCtx,isUpdateRCVD)
       puts "blocking. isInterceptRequiredForFree"
       node = Dea::NodeManager.instance
-      depMgr = node.getDynamicDepManager(compIdentifier)
-      updateMgr = node.getUpdateManager(compIdentifier)
+      depMgr = node.getDynamicDepManager(compIdentifierKey)
+      updateMgr = node.getUpdateManager(compIdentifierKey)
       puts "blocking: isInterceptRequireForFree method"
       algorithmOldVersionRootTxs = nil
       if isUpdateRCVD

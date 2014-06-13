@@ -7,15 +7,14 @@ module Dea
     attr_accessor :compLifecycleMgr
     
     def initialize(compLife)
-      @compLifecycleMgr = compLife
-      
+      @compLifecycleMgr = compLife      
     end
     
-    def achieveFreeness(rootTxID,rootComp,parentComp,curTxID,hostComp)
-      
+    def achieveFreeness(rootTxID,rootComp,parentComp,curTxID,hostComp,port)
+      key= hostComp +":" + port
       nodeMgr = Dea::NodeManager.instance
-      compLifeMgr = nodeMgr.getCompLifecycleManager(hostComp)
-      updateMgr = nodeMgr.getUpdateManager(hostComp)
+      compLifeMgr = nodeMgr.getCompLifecycleManager(key)
+      updateMgr = nodeMgr.getUpdateManager(key)
       vaidToFreeMonitor = compLifeMgr.compObj.validToFreeSyncMonitor
       algorithmOldRootTxs = updateMgr.updateCtx.algorithmOldRootTxs
       
@@ -34,8 +33,9 @@ module Dea
       return false
     end
     
-    def isReadyForUpdate(hostComp)
-      updateMgr= NodeManager.instance.getUpdateManager(hostComp)
+    def isReadyForUpdate(hostComp,port)
+      key = hostComp +":" + port
+      updateMgr= NodeManager.instance.getUpdateManager(key)
       
       oldVersionRootTxs = updateMgr.updateCtx.algorithmOldRootTxs
       puts "oldVersionRootTxs.size() = #{oldVersionRootTxs.size}"

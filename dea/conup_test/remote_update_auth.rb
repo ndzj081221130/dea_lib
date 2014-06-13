@@ -24,5 +24,5 @@ protocol = "CONSISTENCY"
           #tar_output = run_with_err_output(command)# command, or system will new a process??
           #puts "#{targetIdentifier}.compUpdator , exe push result : #{tar_output}"
     
-  rcs.update(ip,port,targetIdentifier,protocol,baseDir,classFilePath,contributionUri,compositeUri,nil)
+  rcs.update(ip,port,targetIdentifier,protocol,baseDir,compositeUri,nil)
 

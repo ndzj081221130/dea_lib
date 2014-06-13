@@ -4,7 +4,7 @@ require_relative "../conup/client_sync"
  require_relative "../conup/client_sync_close"
  
 ip="192.168.12.34"
-port="8000"
+port="8010"
 msg = {}
 msg["freeness"] = "blocking_strategy"
 msg["PastComps"] = Array.new

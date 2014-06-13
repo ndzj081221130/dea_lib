@@ -5,6 +5,7 @@ require "steno/core_ext"
 require 'json'
 require "set"
 require "monitor"
+
 require_relative "./tx_dep_registry"
 require_relative "./scope"
 require_relative "./dynamic_dep_mgr"
@@ -24,6 +25,7 @@ module Dea
     
     attr_accessor :ondemandRequestStatus # Map<String,Map<String,bool>>
     attr_accessor :confirmOndemandStatus #Map<String,Map<String,bool>>
+    attr_accessor :ondemandRequestPorts #{"port"=>"name"}
     
     attr_accessor :ondemandHelper
     attr_accessor :compLifecycleMgr
@@ -37,10 +39,13 @@ module Dea
     def initialize(comp) # ComponentObject
       # @depMgr = Dea::DynamicDepManager.instance(comp) #这两个也是在nodemgr.getOndemandSetupHelper时set
       # @compLifecycleMgr = Dea::CompLifecycleManager.instance(comp)
+      @keyGet = comp.identifier + ":" + comp.componentVersionPort.to_s
+      @identifier = comp.identifier
       
       # we don't new a helper here, instead , we set helper, when we want to use a setup
       @ondemandRequestStatus = {}
       @confirmOndemandStatus = {}
+      @ondemandRequestPorts = Hash.new
       # txDepMonitor = Dea::TxDepMonitor.instance(comp) #这个不从这里获取，而是在nodemgr.getTxDepMonitor时，set
 #       
       # @txDepRegistry = txDepMonitor.txDepRegistry
@@ -51,6 +56,7 @@ module Dea
     
     def ondemand(scope) #Scope return boolean
       hostComp =  @ondemandHelper.compObj.identifier
+      port = @ondemandHelper.compObj.componentVersionPort
       if !scope
         scope = calcScope() #看来是计算scope错了啊
         
@@ -67,11 +73,11 @@ module Dea
         @depMgr.getRuntimeDeps.clear
       end
       
-      reqOndemandSetup(hostComp,hostComp)
+      reqOndemandSetup(hostComp,hostComp,port)
     end
     
     public
-    def ondemandSetup(srcComp,protlcol,payload)
+    def ondemandSetup(srcComp,protocol,payload)
       payloadResolver = Dea::DepPayloadResolver.new(payload)
       
       puts "ondemand_setup: method ondemandSetup :  payload = #{payload}"
@@ -80,7 +86,15 @@ module Dea
       puts operation
       
       curComp = payloadResolver.getParameter(Dea::DepPayload::TARGET_COMPONENT)
-      
+       srcPort = payloadResolver.getParameter(Dea::DepPayload::SRC_PORT)
+        
+        puts "srcPort #{srcPort}"
+     
+     if curComp == @identifier
+       puts "currComp == identifier"
+     else
+       puts "error!!! not equal in ondemands"
+     end
       if operation == Dea::DepOperationType::REQ_ONDEMAND_SETUP
         scopeString = payloadResolver.getParameter(Dea::DepPayload::SCOPE)
         
@@ -89,7 +103,7 @@ module Dea
           depMgr.scope = scope
         end
         
-        reqOndemandSetup(curComp,srcComp)
+        reqOndemandSetup(curComp,srcComp,srcPort)
       elsif operation == Dea::DepOperationType::CONFIRM_ONDEMAND_SETUP
         confirmOndemandSetup(srcComp,curComp)
         
@@ -179,7 +193,7 @@ module Dea
     
     private
     # 对于依赖自己的构件，要求进行ondemand setup
-    def reqOndemandSetup(currentComp,requestSrcComp) #return bool
+    def reqOndemandSetup(currentComp,requestSrcComp,requestSrcPort) #return bool
       hostComp = currentComp
       targetRef = nil#Set.new
       parentComps = nil#Set.new  
@@ -235,7 +249,7 @@ module Dea
       puts "ondemand setup: ***#{hostComp} 's parents: #{parentCompsStr}"
       #同时，接受本构件所依赖构件发起的ondemand请求 ， 为啥parent是空的？？？
       # wait for other reqOndemandSetup
-      receiveReqOndemandSetup(requestSrcComp,hostComp,parentComps)
+      receiveReqOndemandSetup(requestSrcComp,requestSrcPort,hostComp,parentComps)
       
     end
     
@@ -253,8 +267,10 @@ module Dea
       if confirmStatus != nil && confirmStatus[parentComp] != nil 
         confirmStatus[parentComp] = true
       else
-        puts "setup : confirm nil ? #{confirmStatus == nil}"
-        puts "setup: confirm[parent] == nil ? #{confirmStatus[parentComp] == nil}"
+        puts "setup : confirmStatus nil ? #{confirmStatus == nil}"
+        if confirmStatus
+         puts "setup: confirm[parent] == nil ? #{confirmStatus[parentComp] == nil}"
+        end
         puts "ondemand setup : illegal status while confirm ondemand setup"
         return false
       end
@@ -269,8 +285,8 @@ module Dea
             puts "ondemand setup : confirmOndemandSetup from #{parentComp} ,"+
                   " and confirmed all , trying to change mode to valid"
             # TODO to be tested
-            puts "currentComp = #{currentComp}"
-              updateMgr = Dea::NodeManager.instance.getUpdateManager(currentComp)
+             puts "currentComp = #{currentComp}"
+             updateMgr = Dea::NodeManager.instance.getUpdateManager(@keyGet)
              updateMgr.ondemandSetupIsDone()
             
              sendConfirmOndemandSetup(currentComp)
@@ -373,7 +389,7 @@ module Dea
             
             if subFlag
               isLastUse = true
-              txDepMonitor = Dea::NodeManager.instace.getTxDepMonitor(curComp)
+              txDepMonitor = Dea::NodeManager.instace.getTxDepMonitor(@keyGet)
               
               isLastUse = txDepMonitor.isLastUse(txContext.currentTx, targetComp,curComp)
               
@@ -395,8 +411,7 @@ module Dea
               payloadSend = ConsistencyPayloadCreator.createPayload4(dep.srcCompObjIdentifier,
                                                dep.targetCompObjIdentifier,
                                         dep.rootTx, Dea::DepOperationType::NOTIFY_FUTURE_ONDEMAND)
-#               ondemandComm.synPost(curComp,dep.targetCompObjIdentifier,"CONSISTENCY","ONDEMAND_MSG",payloadSend)
-#               
+ #               
               depNotifySync(curComp,dep.targetCompObjIdentifier,payloadSend)
             end
           
@@ -422,8 +437,7 @@ module Dea
                payloadSend = ConsistencyPayloadCreator.createPayload4(dep.srcCompObjIdentifier,
                                                dep.targetCompObjIdentifier,
                                         dep.rootTx, Dea::DepOperationType::NOTIFY_PAST_ONDEMAND)
-#               ondemandComm.synPost(curComp,dep.targetCompObjIdentifier,"CONSISTENCY","ONDEMAND_MSG",
-                depNotifySync(curComp,dep.targetCompObjIdentifier,payloadSend)
+                 depNotifySync(curComp,dep.targetCompObjIdentifier,payloadSend)
             end
               
           } # end pDeps.each
@@ -444,8 +458,7 @@ module Dea
                  payloadSend = ConsistencyPayloadCreator.createPayload4(dep.srcCompObjIdentifier,
                                                dep.targetCompObjIdentifier,
                                         dep.rootTx, Dea::DepOperationType::NOTIFY_SUB_FUTURE_ONDEMAND)
-#               ondemandComm.synPost(curComp,dep.targetCompObjIdentifier,"CONSISTENCY","ONDEMAND_MSG",payloadSend)
-              
+               
                 depNotifySync(curComp,dep.targetCompObjIdentifier,payloadSend)
                end
                
@@ -664,14 +677,14 @@ module Dea
     end
     
     
-    def receiveReqOndemandSetup(requestSrcComp,currentComp, parentComponents) #String,String,Set<String>
+    def receiveReqOndemandSetup(requestSrcComp,requestSrcPort,currentComp, parentComponents) #String,String,Set<String>
       puts "ondemand_setup : requestSrcComp = #{requestSrcComp},currentComp = #{currentComp}"
       puts "ondemand_setup: ondemandRequestStatus #{@ondemandRequestStatus}"
-      @ondemandRequestStatus.each{|key,value|
-        
+      @ondemandRequestStatus.each{|key,value|        
         puts "request Status , key = #{key} ,value = #{value}"
         }
-        
+      @ondemandRequestPorts[requestSrcPort]= requestSrcComp 
+      puts "now , ports = #{@ondemandRequestPorts}"
       reqStatus = @ondemandRequestStatus[currentComp]
       
       if reqStatus[requestSrcComp] != nil
@@ -713,7 +726,7 @@ module Dea
                 
                 # change current componentStatus to ondemand
                 # test
-                updateMgr = Dea::NodeManager.instance.getUpdateManager(currentComp)
+                updateMgr = Dea::NodeManager.instance.getUpdateManager(@keyGet)
                 
                 updateMgr.ondemandSetting()
                 # send reqOndemandSetup(...) to parent Comps
@@ -777,7 +790,12 @@ module Dea
                end  
         else
           puts "!!! : setup : not received all or comp.status != normal"
-          puts "setup : isReceivedAll= #{isReceivedAll} , compStatus = #{@compLifecycleMgr.compStatus}"   
+          puts "setup : isReceivedAll= #{isReceivedAll} , compStatus = #{@compLifecycleMgr.compStatus}" 
+          
+          if @compLifecycleMgr.compStatus == CompStatus::VALID
+             puts " #{currentComp} already valid , just set confirm "
+             sendConfirmOndemandSetup(currentComp)
+          end  
         end
       end   
     end
@@ -792,13 +810,14 @@ module Dea
       parentComps.each{|parent|str += parent +","}
       
       puts "ondemand_setup : #{str} "
-            
+      host_port = @compLifecycleMgr.compObj.componentVersionPort      
       parentComps.each{|parent|
         #  send , need testing
         payloadSend = Dea::DepPayload::OPERATION_TYPE + ":" + Dea::DepOperationType::REQ_ONDEMAND_SETUP + "," +
             Dea::DepPayload::SRC_COMPONENT + ":" + hostComp +"," + 
             Dea::DepPayload::TARGET_COMPONENT + ":" + parent +"," +
-            Dea::DepPayload::SCOPE + ":" + @depMgr.scope.to_s 
+            Dea::DepPayload::SCOPE + ":" + @depMgr.scope.to_s + "," +
+            Dea::DepPayload::SRC_PORT + ":" + host_port
                                                    
          comm =  @xmlUtil.getAllComponentsComm
          ip =  "192.168.12.34"
@@ -839,7 +858,7 @@ module Dea
                                           "CONSISTENCY",MsgType::ONDEMAND_MSG,payloadSend,"Async")
     end
     
-    def sendConfirmOndemandSetup(hostComp)
+    def sendConfirmOndemandSetup(hostComp)#向所有子构件发确认？应该是向所有向我发送ondemand请求的构件发送confirm吧
       
       targetRef = nil#Set<>
       
@@ -858,16 +877,31 @@ module Dea
       puts "ondemand_setup : sendConfirmOndemandSetup : #{str} "
       
       #TODO send ayncPost need testing
-      targetRef.each{|subComp|
+      # targetRef.each{|subComp|
+         # payloadSend =  Dea::DepPayload::OPERATION_TYPE + ":" + Dea::DepOperationType::CONFIRM_ONDEMAND_SETUP +
+                        # "," + Dea::DepPayload::SRC_COMPONENT + ":" + hostComp + 
+                        # "," + Dea::DepPayload::TARGET_COMPONENT + ":" + subComp
+         # ip =  "192.168.12.34"
+         # comm =  @xmlUtil.getAllComponentsComm
+         # port =  comm[subComp]               
+         # Dea::ASynCommClient.sendMsg(ip,port,hostComp,subComp,"CONSISTENCY","ONDEMAND_MSG",payloadSend,"Async")   
+        # }
+        
+        @ondemandRequestPorts.each{|port,name|
          payloadSend =  Dea::DepPayload::OPERATION_TYPE + ":" + Dea::DepOperationType::CONFIRM_ONDEMAND_SETUP +
                         "," + Dea::DepPayload::SRC_COMPONENT + ":" + hostComp + 
-                        "," + Dea::DepPayload::TARGET_COMPONENT + ":" + subComp
+                        "," + Dea::DepPayload::TARGET_COMPONENT + ":" + name
          ip =  "192.168.12.34"
-          comm =  @xmlUtil.getAllComponentsComm
-         port =  comm[subComp]               
-         Dea::ASynCommClient.sendMsg(ip,port,hostComp,subComp,"CONSISTENCY","ONDEMAND_MSG",payloadSend,"Async")   
+         # comm =  @xmlUtil.getAllComponentsComm
+         # port =  comm[subComp]
+         puts "#{hostComp} set confirm to #{name}"          
+         if name != hostComp     
+            Dea::ASynCommClient.sendMsg(ip,port,hostComp,name,"CONSISTENCY","ONDEMAND_MSG",payloadSend,"Async")   
+         end
         }
-       end
+        
+        @ondemandRequestPorts = Hash.new
+    end
     
     def getFDeps(curComp,txID) #txID may be a sub tx
       result = Set.new #{skipList<Dependence>}

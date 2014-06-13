@@ -6,7 +6,7 @@ require "json"
 require_relative "../conup/client_sync_close"
 
 ip="192.168.12.34"
-port="8002"
+port= Cons::PaPa_Port
 msg = {}
 msg["PastComps"] = Array.new
 msg["indeps"] = Array.new
@@ -22,7 +22,7 @@ msg["FutureComps"] = fComps
 msg["transaction_id"] = Cons::PaPa_Tx_id
 msg["instance_id"] = Cons::PaPa_instance_id
 
-msg["other_dea_port"] = "8001"
+msg["other_dea_port"] = Cons::Call_Port
 msg["other_dea_ip"] = "192.168.12.34"
 msg["target_comp"] = "CallComponent"
 

@@ -5,12 +5,15 @@ require "set"
 require "steno"
 require "steno/config"
 require "steno/core_ext"
+require 'json'
 
 require "thin"
 
 require "vcap/common"
 require "vcap/component"
-
+require_relative "./conup/client_sync"
+require_relative "./conup/node_mgr"
+require "dea/query_server"
 require "dea/config"
 require "dea/directory_server"
 require "dea/directory_server_v2"
@@ -79,7 +82,7 @@ module Dea
       setup_sweepers
       setup_nats
       setup_router_client
-      # setup_stats_collect_server
+       setup_stats_query_server
     end
 
     def setup_varz
@@ -134,11 +137,11 @@ module Dea
       @instance_registry = Dea::InstanceRegistry.new(config)
     end
 
-    # attr_reader :collect_server
-    # def setup_stats_collect_server      
-      # @collect_server = DEA::CollectServer.new(self,config)
-      # @collect_server.start
-    # end
+    attr_reader :query_server
+    def setup_stats_query_server      
+      @query_server = Dea::QueryServer.new(config["query_ip"],config["query_port"],config  )
+      @query_server.start
+    end
 
     attr_reader :resource_manager
 
@@ -469,7 +472,102 @@ module Dea
     def handle_health_manager_start(message)
       send_heartbeat(instance_registry.to_a)
     end
+    # get remote msg : {"RootTx"=>"1339d740-03b8-4d27-9b3d-08058d2541c3", 
+      # "ParentTx"=>"1339d740-03b8-4d27-9b3d-08058d2541c3", 
+      # "ParentPort"=>"8002", "ParentName"=>"CallComponent", 
+      # "SubPort"=>"8001",
+       # "SubName"=>"HelloworldComponent"}
 
+    def  self.translate_attributes(attributes) #defined by zhang
+      attributes = attributes.dup#数组复制
+
+      attributes["RootTx"]      ||= attributes.delete("RootTx")
+
+      attributes["ParentTx"]      ||= attributes.delete("ParentTx").to_s
+      attributes["ParentPort"] ||= attributes.delete("ParentPort")
+      attributes["ParentName"]    ||= attributes.delete("ParentName")
+      attributes["SubPort"]    ||= attributes.delete("SubPort")
+      attributes["SubName"]    ||= attributes.delete("SubName")
+ 
+
+      # Translate environment to dictionary (it is passed as Array with VAR=VAL)
+      # env = attributes.delete("env") || []
+      # attributes["environment"] ||= Hash[env.map do |e|
+        # pair = e.split("=", 2)
+        # pair[0] = pair[0].to_s
+        # pair[1] = pair[1].to_s
+        # pair
+      # end]
+
+      attributes
+    end
+    
+    
+    def handle_remote_msg(message)
+      attributes = message.data
+      json =  Bootstrap.translate_attributes(attributes)
+      #puts "get remote msg : #{message.data}"
+      
+      
+      puts "bootstrap.handle_remote_msg: json = #{ json}"
+      
+      parentPort = json["ParentPort"]
+      parentName = json["ParentName"]
+      parentTx = json["ParentTx"]
+      rootTx = json["RootTx"]
+      subPort = json["SubPort"]
+      subName = json["SubName"]
+      
+      key = parentName + ":" + parentPort.to_s
+      if rootTx == nil || rootTx == ""
+        puts  "root tx"
+      else
+        puts "bootstrap.handle : sub tx"
+        
+        puts "bootstrap.handle: notify sub dea  about root tx info "
+            #,通知调用的构件 ,关于根事务和父事务的信息"
+            #这里不仅创建InvocationContext，而且调用startRemoteContext
+            
+            other_dea_ip = "192.168.12.34"
+            other_dea_port = subPort
+            target = subName
+            
+             
+            msg = {}
+            msg["parentTx"] = parentTx
+            msg["parentComponent"] = parentName
+            msg["parentPort"] = parentPort
+            
+            msg["rootTx"] = rootTx
+            msg["rootComponent"] = parentName
+            msg["target_comp"] = target
+            puts "bootstrap.handle other_dea_ip = #{other_dea_ip}"
+            puts "bootstrap.handle other_dea_port #{other_dea_port}"  
+            
+            puts Dea::NodeManager.instance.compObjects
+            comp = Dea::NodeManager.instance.getComponentObject(key)
+            puts comp == nil
+            
+            # 在createInvocation中， 调用startRemoteSubTx方法，
+            txDepMonitor = Dea::NodeManager.instance.getTxDepMonitor(key)
+            puts txDepMonitor == nil
+            invocationCtx = Dea::NodeManager.instance.getTxLifecycleManager(key).createInvocation(parentName,target,txDepMonitor)
+            # puts 
+            #这里显然应该有subFakeTx了啊                       
+            msg["invocation_context"] = invocationCtx
+            puts "collect_server : FirstRequest , invocationCtx = #{invocationCtx}" 
+            # here ,we need send sync msg
+            result = Dea::ClientSync.new(other_dea_ip,other_dea_port,msg.to_json)
+            puts "bootstrap.handle #{name} notify #{other_dea_port} , and get confirm msg"
+            #puts "collect_server send data back , rootTx = #{rootTx}"
+            result = "bootstrap.handle #{name} notify #{other_dea_port} , and get confirm msg"
+            send_data(result)
+            close_connection_after_writing # why shutdown?
+        
+      end
+      
+    end
+    
     def handle_router_start(message)
       #router start后，将instance_registry中的每一个实例都注册到router
       instance_registry.each do |instance|
@@ -743,6 +841,8 @@ module Dea
           yield(instance)
         end
       end
+      
+      puts
     end
 
     def periodic_varz_update

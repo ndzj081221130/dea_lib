@@ -42,6 +42,8 @@ module Dea
     def initialize(comp) #ComponentObject
        puts "update_mgr : comp =  #{comp}"
        @compObj = comp
+       
+       @keyGet = comp.identifier + ":" + comp.componentVersionPort.to_s
        compIdentifier = comp.identifier
        @instance = nil # actually，每次初始化update mgr时，后面都会紧跟着一句对instance的赋值 
        @compUpdator = Dea::CompUpdator.new
@@ -141,11 +143,10 @@ module Dea
        @compUpdator.cleanUpdate(compIdentifier) 
        # puts "af"
        @compUpdator = CompUpdator.new()
-       # node.getOndemandSetupHelper(name)
-       
+        
        node = Dea::NodeManager.instance
        
-       node.ondemandHelpers.delete compIdentifier
+       node.ondemandHelpers.delete @keyGet
      
        
        puts "update_mgr: cleanUpdate: have set to new version"
@@ -231,13 +232,14 @@ module Dea
       return "ondemandResult:#{ondemandResult}"
     end
     
-    def manageRemoteConf(reqObj) #Requestobject
+    def manageRemoteConf(reqObj) #Request object
       # puts "updateMgr： manageRemoteConf : "     result = false
       payload = reqObj.payload
       
       payloadResolver = Dea::UpdateContextPayloadResolver.new(payload)
       opType = payloadResolver.operation
       puts "#{@compObj.identifier}.updateMgr: optype = #{opType}"  
+      port = @compObj.componentVersionPort
       compIdentifier = payloadResolver.getParameter(Dea::UpdateContextPayload::COMP_IDENTIFIER)
       if opType == Dea::UpdateOperationType::UPDATE
         #  get the new version of hello component
@@ -248,7 +250,7 @@ module Dea
         compositeUri = payloadResolver.getParameter(Dea::UpdateContextPayload::COMPOSITE_URI)
         scope = payloadResolver.getParameter(Dea::UpdateContextPayload::SCOPE)
         puts "scope = #{scope}"
-        result = update(baseDir,classFilePath,contributionUri,compositeUri,compIdentifier,scope)
+        result = update(baseDir,port,compositeUri,compIdentifier,scope)
         
       elsif opType == Dea::UpdateOperationType::ONDEMAND
        
@@ -298,12 +300,14 @@ module Dea
       elsif msgType == Dea::MsgType::EXPERIMENT_MSG
         return manageExp(reqObj)
       else
-        puts "updateMgr: unknown msg type"
+        puts "updateMgr: unknown msg type #{msgType}"
         return nil        
       end
     end
     
-    def update(baseDir,classFilePath,contributionURI,compositeURI,compIdentifier,scope)
+    def update(baseDir,port,compositeURI,compIdentifier,scope)
+      
+      versionPort = port
       
       synchronize do
         if @updateCtx != nil && @updateCtx.isLoaded
@@ -313,13 +317,13 @@ module Dea
         
         isUpdated= false
         
-        @compUpdator.initUpdator(baseDir,classFilePath,contributionURI,compositeURI,compIdentifier)
+        @compUpdator.initUpdator(baseDir,port,compositeURI,compIdentifier)
         @compObj.updateIsReceived# 这里将component的@isTargetComp设为true
       end
       
       if @compLifecycleMgr.compStatus == Dea::CompStatus::NORMAL
-        comp = Dea::NodeManager.instance.getComponentObject(compIdentifier)
-        ondemandHelper = Dea::NodeManager.instance.getOndemandSetupHelper(compIdentifier)
+        comp = Dea::NodeManager.instance.getComponentObject(@keyGet)
+        ondemandHelper = Dea::NodeManager.instance.getOndemandSetupHelper(@keyGet)
         puts "update_mgr: before ondemandSetupScope"
         ondemandHelper.ondemandSetupScope(scope)
         

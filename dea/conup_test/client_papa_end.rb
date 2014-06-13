@@ -6,7 +6,7 @@ require "json"
 require_relative "../conup/client_sync_close"
 
 ip="192.168.12.34"
-port="8002"
+port= Cons::PaPa_Port
 msg = {}
 msg["PastComps"] = Array.new
 msg["indeps"] = Array.new

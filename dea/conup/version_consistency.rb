@@ -3,7 +3,7 @@
  require  "steno"
  require  "steno/core_ext"
  require  "set"
-
+ require 'minitest/autorun'
  require_relative "./tx_context"
  require_relative "./tx_event_type"
  require_relative "./dynamic_dep_mgr"
@@ -33,8 +33,8 @@ module Dea
       
       #在ondemand过程中，这里没被调用？
       compStatus = compLifecycleMgr.compStatus #CompStatus
-      
-      txDepRegistry = NodeManager.instance.getTxDepMonitor(compLifecycleMgr.compObj.identifier).txDepRegistry
+      key = compLifecycleMgr.compObj.identifier + ":" + compLifecycleMgr.compObj.componentVersionPort.to_s
+      txDepRegistry = NodeManager.instance.getTxDepMonitor(key).txDepRegistry
       
       case compStatus
       when CompStatus::NORMAL
@@ -112,7 +112,7 @@ module Dea
           hostComp = txCtx.hostComponent
           ondemandSyncMonitor = compLifecycleMgr.compObj.ondemandSyncMonitor
           ondemandCondition = compLifecycleMgr.compObj.ondemandCondition
-          
+          port = compLifecycleMgr.compObj.componentVersionPort
           #  do we need sync here , cause we only have one DEA,one Component,one Mgr
           ondemandSyncMonitor.synchronize do 
             rootTx = txCtx.getProxyRootTxId(depMgr.scope)
@@ -121,7 +121,7 @@ module Dea
               puts "vc : depMgr.getTxs().size=#{size}"
               
               depMgr.getTxs().delete(txCtx.currentTx)
-              depMgr.txLifecycleMgr.rootTxEnd(hostComp, rootTx) 
+              depMgr.txLifecycleMgr.rootTxEnd(hostComp,port, rootTx) 
               
               puts "vc : remove tx from TxRegistry and TxDepMonitor , local tx = #{txCtx.currentTx} "
               
@@ -401,7 +401,16 @@ module Dea
     
     def doNotifyPastCreate(sourceComp,targetComp,rootTx,depMgr)
       puts "vc.doNotifyPastCreate: #{sourceComp} ---> #{targetComp} rootTx #{rootTx}"
+      id = depMgr.compLifecycleMgr.compObj.identifier
+      port = depMgr.compLifecycleMgr.compObj.componentVersionPort
+      keyGet = id +":" + port #compLifecycleMgr
+      #assert_equal(sourceComp, id)
       
+      if sourceComp == id
+        puts "doNotify src = id"
+      else
+        puts "!!!Error not equal src,id"
+      end
       inDepRegistry = depMgr.inDepRegistry
       
       dep = Dependence.new(PAST_DEP,rootTx,sourceComp,targetComp,nil,nil)
@@ -440,7 +449,7 @@ module Dea
         
         hostComp = depMgr.compObj.identifier
         
-        txDepRegistry = NodeManager.instance.getTxDepMonitor(hostComp).txDepRegistry
+        txDepRegistry = NodeManager.instance.getTxDepMonitor(keyGet).txDepRegistry
         
         removeFutureEdges4(targetComp,rootTx,depMgr,txDepRegistry)
         
@@ -538,13 +547,15 @@ module Dea
     
     def doNotifyFutureRemove(sourceComp,targetComp,rootTx,depMgr)
       hostComp = depMgr.compObj.identifier
+      port = depMgr.compObj.componentVersionPort
+      key = hostComp + ":" + port.to_s
       puts "#{hostComp}.vc.doNotifyFutureRemove #{sourceComp} --> #{targetComp}   rootTx: #{rootTx}"
       
       inDepRegistry = depMgr.inDepRegistry
       inDepRegistry.removeDependence(FUTURE_DEP, rootTx, sourceComp, targetComp)
       puts "#{hostComp} after removeDep(Future) , inDepRegistry = #{inDepRegistry}"
       
-      txDepRegistry = NodeManager.instance.getTxDepMonitor(hostComp).txDepRegistry
+      txDepRegistry = NodeManager.instance.getTxDepMonitor(key).txDepRegistry
       
       result = removeFutureEdges4(targetComp,rootTx,depMgr,txDepRegistry)
       result 
@@ -578,7 +589,15 @@ module Dea
     
      def doNotifyRemoteUpdateDone(sourceComp,hostComp,depMgr)
        puts "vc: #{hostComp} received notfiyRemoteUpdateDone from #{sourceComp}" 
+       #assert_equal(hostComp,depMgr.compLifecycleMgr.compObj.identifier)
        
+       if hostComp == depMgr.compLifecycleMgr.compObj.identifier
+         puts "equal hostComp & depMgr....id"
+       else
+         
+         puts "!!!Error not equal"
+       end
+       key = depMgr.compLifecycleMgr.compObj.identifier + ":" + depMgr.compLifecycleMgr.compObj.componentVersionPort.to_s
        scope = depMgr.scope
        parentComps = Set.new
        if scope!=nil
@@ -602,7 +621,7 @@ module Dea
          
           depMgr.scope = nil
 
-          updateMgr = Dea::NodeManager.instance.getUpdateManager(hostComp)
+          updateMgr = Dea::NodeManager.instance.getUpdateManager(key)
           
           updateMgr.remoteDynamicUpdateIsDone()
          
@@ -611,6 +630,16 @@ module Dea
     
     #try to remove future dep when receive ACK_SUB_INIT
       def removeFutureEdges5(currentComp,rootTx,currentTxID,subTxID,depMgr)
+        #assert_equal(currentComp,depMgr.compLifecycleMgr.compObj.identifier )
+        
+        if currentComp == depMgr.compLifecycleMgr.compObj.identifier
+          puts "cur == dep...id"
+        else
+          outs "removeFutureEdges , not equal current& depMgr...id"
+        end
+        port = depMgr.compLifecycleMgr.compObj.componentVersionPort
+        
+        key = currentComp +":" + port
         puts "vc.removeFutureEdges5, curComp = #{currentComp} , "
         outDepRegistry = depMgr.outDepRegistry
         inDepRegistry = depMgr.inDepRegistry
@@ -643,7 +672,7 @@ module Dea
           }   
         
         if !inFutureFlag
-          txDepMonitor = Dea::NodeManager.instance.getTxDepMonitor(currentComp)
+          txDepMonitor = Dea::NodeManager.instance.getTxDepMonitor(key)
           puts "in future flag == false"
           outFutureOneRoot.each{|dep|
             puts "outFutureOneRoot : dep = #{dep}"
@@ -750,7 +779,9 @@ module Dea
       end
       
       def removeAllEdges(hostComp,rootTx, depMgr)
-        puts "vc.removeAllEdges , rootTx = #{rootTx}"
+        port = depMgr.compLifecycleMgr.compObj.componentVersionPort
+        key1 = hostComp + ":" + port.to_s
+        puts "vc.removeAllEdges , rootTx = #{rootTx} ,  key = #{key1}"
         rtOutDeps = depMgr.getRuntimeDeps()
         
         rtOutDeps.each{|dep|
@@ -811,7 +842,7 @@ module Dea
             }  
             
           puts "#{hostComp}.vc.removeAllEdges, before rootTx end"
-          depMgr.getTxLifecycleMgr().rootTxEnd(hostComp,rootTx)
+          depMgr.getTxLifecycleMgr().rootTxEnd(hostComp,port,rootTx)
           
           return true  
       end

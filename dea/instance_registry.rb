@@ -67,7 +67,17 @@ module Dea
 
       nil
     end
-
+    
+    def has_instances_for_application(app_name)
+      @instances.each{|id,instance|
+        
+        if instance.application_name == app_name
+          return true
+        end
+        }
+      return false
+    end
+    
     def instances_for_application(app_id)
       @instances_by_app_id[app_id] || {}
     end
