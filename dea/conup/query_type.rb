@@ -5,5 +5,12 @@ module Dea
     
     Components = "Components"
     Ports = "Ports"
+    Instances = "Instances"
+    
+    Instance = "Instance"
+    
+    DeleteComponent = "DeleteComponent"
+    
+    
   end
 end

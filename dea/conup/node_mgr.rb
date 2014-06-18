@@ -4,7 +4,7 @@ require 'monitor'
 require 'set'
 require_relative "./ondemand_setup_helper"
 require_relative "./ondemand_setup"
-
+require 'monitor'
 # require
 module Dea
   class NodeManager  
@@ -13,7 +13,7 @@ module Dea
     include Singleton
     
     attr_accessor :syncMonitor
-     
+    attr_accessor :pushMonitor 
     attr_accessor :ondemandHelpers 
     attr_accessor :compObjects # Hash < id:port, ComponentObject >
     # attr_accessor :instance
@@ -28,24 +28,39 @@ module Dea
       @updateMgrs = {}
       @syncMonitor="1"
       @syncMonitor.extend(MonitorMixin)
+      
+      @pushMonitor ="2"
+      @pushMonitor.extend(MonitorMixin)
     end
     
     def removeComponentsViaName(name)
       
-      @compObjects.delete_if{|key,instance| instance.identifier == name}  
+      @compObjects.delete_if{|key,instance| instance.identifier == name} 
+      @compObjects 
     end
     
-    def getComponentsViaName(name)
-      
+    def getComponentsViaName(name)      
       resultPorts = Set.new
        @compObjects.each{|key,comp|
-         puts comp
+        # puts comp
          if comp.identifier == name
            
            resultPorts << comp.componentVersionPort
          end
          }
       resultPorts
+    end
+    
+    def getKeysViaName(name)      
+      resultKeys = Set.new
+       @compObjects.each{|key,comp|
+         #puts comp
+         if comp.identifier == name
+           
+           resultKeys << name +":" + comp.componentVersionPort 
+         end
+         }
+      resultKeys
     end
     
     def getAllPorts
@@ -232,10 +247,7 @@ module Dea
         end
       end
     end
-    
-    #{"HelloworldComponent"=>component [id: HelloworldComponent , version:1.0, staticDeps:,staticInDeps:CallComponent/, isTargetComp:false]}
-# nodeMgr: in getUpdateMgr, compObj = nil for component [id: HelloworldComponent , version:1.0, staticDeps:,staticInDeps:CallComponent/, isTargetComp:false]
-
+     
     def getUpdateManager(identifierKey)
       updateMgr = nil
       @syncMonitor.synchronize do  

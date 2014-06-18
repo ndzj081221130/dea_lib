@@ -339,7 +339,8 @@ module Dea
           puts "payload = #{request.payload}" 
           puts "collect_server : conf : #{  id }"
           key = id +":" + @configPort.to_s #TODO testing
-          updateMgr = Dea::NodeManager.instance.getUpdateManager(key)
+          updateMgr = Dea::NodeManager.instance.getUpdateManager(key) #这里的问题？？？
+          updateMgr.instance = @instance#如果不加这一句，真的会出现hello的更新转发到db上？
           result = updateMgr.processMsg(request)
           
           puts "collect_server : msgType!=nil , result = #{result}"

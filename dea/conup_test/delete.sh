@@ -1,6 +1,6 @@
-cf delete tuscany
-cf delete call
+cf delete auth
+cf delete proc
 #cf delete db
-cf delete papa
-cf delete tuscany2
+cf delete portal
+#cf delete auth_new
 

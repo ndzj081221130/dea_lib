@@ -45,7 +45,9 @@ module Dea
        
        @keyGet = comp.identifier + ":" + comp.componentVersionPort.to_s
        compIdentifier = comp.identifier
-       @instance = nil # actually，每次初始化update mgr时，后面都会紧跟着一句对instance的赋值 
+       @instance = nil 
+       # actually，每次初始化update mgr时，后面都会紧跟着一句对instance的赋值 
+       #不对，那一行被注释了，现在怎么赋值？
        @compUpdator = Dea::CompUpdator.new
        # @compLifecycleMgr = Dea::CompLifecycleManager.instance(comp) # not nil ,not new
        # @depMgr = Dea::DynamicDepManager.instance(compIdentifier)
@@ -55,11 +57,13 @@ module Dea
     
     
     def attemptToUpdate
+      
+      key = @compObj.identifier + ":" + @compObj.componentVersionPort
       validToFreeSyncMonitor = @compObj.validToFreeSyncMonitor
       validToFreeSyncMonitor.synchronize do
         if @compLifecycleMgr.compStatus == Dea::CompStatus::VALID && @updateCtx != nil && @updateCtx.isLoaded
           if !@updateCtx.isOldRootTxsInitiated
-            puts "update_mgr: initOldRootTxs()"
+            puts "#{key}.update_mgr: initOldRootTxs()"
             initOldRootTxs()
           end
           
@@ -69,26 +73,29 @@ module Dea
           else
             freeness = Dea::WaitingFreenessStrategy.new(@compLifecycleMgr)
           end
+          
           if freeness.isReadyForUpdate(@compObj.identifier)
-            puts "update_mgr: achieve Free"
+            puts "#{@keyGet}.update_mgr: achieve Free"
             achieveFree()
           else
-            puts "update_mgr : freeness not ready"
+            puts "#{@keyGet}.update_mgr : freeness not ready"
+            
           end
+          
         else
                      
-          puts "update_mgr: status = #{@compLifecycleMgr.compStatus} , #{@updateCtx} , isLoaded #{@updateCtx.isLoaded}"
+          puts "#{@keyGet}.update_mgr: status = #{@compLifecycleMgr.compStatus} , #{@updateCtx} , isLoaded #{@updateCtx.isLoaded}"
         end
       end
       
       updatingSyncMonitor = @compObj.updatingSyncMonitor
       updatingSyncMonitor.synchronize do 
         if @compLifecycleMgr.compStatus == Dea::CompStatus::FREE
-          puts "update_mgr: inside updatingMonitor "
+          puts "#{@keyGet}.update_mgr: inside updatingMonitor "
           executeUpdate()
           cleanUpdate()
         else
-          puts "inside updatingMonitor else : #{@compLifecycleMgr.compStatus}"
+          puts "#{@keyGet}.inside updatingMonitor else : #{@compLifecycleMgr.compStatus}"
         end
       end
     end 
@@ -98,13 +105,13 @@ module Dea
       validCondition = @compObj.validCondition
       validToFreeSyncMonitor.synchronize do
            compStatus = @compLifecycleMgr.compStatus
-           puts "updateMgr : in achieveFree: CompStatus= #{compStatus}"
+           puts "#{@keyGet}.updateMgr : in achieveFree: CompStatus= #{compStatus}"
            
            if compStatus == Dea::CompStatus::VALID #|| compStatus == Dea::CompStatus::FREE
              @compLifecycleMgr.transitToFree
              @bufferEventType = Dea::BufferEventType::EXEUPDATE
              notifyInterceptors(@bufferEventType)
-             puts "*** component has achieved free , now notify all ****"
+             puts "***#{@keyGet}. component has achieved free , now notify all ****"
              # java calls validToFreeSyncMonitor.notifyAll() , 
              # if I do nothing here ,will there be a dead lock??? of course there will!
              validCondition.signal()
@@ -169,18 +176,7 @@ module Dea
        
        @updateCtx = nil # TODO added by zhang
        
-       # instance = @compLifecycleMgr.instance
-       # version = @compObj.componentVersion + "1"
-       # algconf = @compObj.algorithmConf
-       # freeConf = @compObj.freenessConf
-       # deps = @compObj.staticDeps
-       # indeps = @compObj.staticInDeps
-       # implType = @compObj.implType
-#        
-       # newComp = Dea::ComponentObject.new(compIdentifier,version,algconf,freeConf,deps,indeps,implType)
-       # node.compObjects.delete compIdentifier
-       # node.addComponentObject(compIdentifier,newComp) 
-       # puts newComp
+       
         
     end
     
@@ -198,6 +194,8 @@ module Dea
         
       end
       # update , this is done when valid
+      
+      key = compIdentifier +":" + @compObj.componentVersionPort
       @compUpdator.executeUpdate(compIdentifier,@instance)
     end
     
@@ -331,9 +329,7 @@ module Dea
       end
       
        attemptUpdateThread = Thread.new(self,@compLifecycleMgr) do |updateMgr,compLifeMgr|
-         # waiting while on demand setup
-        # updateMgr = self
-        # compLifeMgr = @compLifecycleMgr
+        
         # puts "here is a thread !!! attemptUpdateThread"
         ondemandSyncMonitor = compLifeMgr.compObj.ondemandSyncMonitor
         ondemandCondition = compLifeMgr.compObj.ondemandCondition
@@ -357,18 +353,18 @@ module Dea
         validToFreeSyncMonitor = compLifeMgr.compObj.validToFreeSyncMonitor
         validCondition = compLifeMgr.compObj.validCondition
         validToFreeSyncMonitor.synchronize do
-          # puts "update_mgr : inside validMonitor"
+          puts "#{compIdentifier}:#{port}.update_mgr : inside validMonitor"
           updateCtx = updateMgr.updateCtx #这个被加锁了？？？
           if compLifeMgr.compStatus == Dea::CompStatus::VALID && updateMgr.isDynamicUpdateRqstRCVD
-            puts "update_mgr : compstatus == valid && isDynamicUpdateRqstRVCD == true"
+            puts "#{compIdentifier}:#{port}.update_mgr : compstatus == valid && isDynamicUpdateRqstRVCD == true"
             flag = @updateCtx.isOldRootTxsInitiated()
-            puts "flag =  #{flag}"
+            puts "#{compIdentifier}:#{port} flag =  #{flag}"
             if !flag  
-              puts "update_mgr : initOldRootTxs()"
+              puts "#{compIdentifier}:#{port} update_mgr : initOldRootTxs()"
               updateMgr.initOldRootTxs()
-              puts "update_mgr: after updatMgr.initOldRootTxs()"
+              puts " #{compIdentifier}:#{port} update_mgr: after updatMgr.initOldRootTxs()"
             else
-              puts "update_mgr : in else"
+              puts " #{compIdentifier}:#{port} update_mgr : in else"
             end
             
             # freenesConf = compLifeMgr.compObj.freenessConf 
@@ -381,20 +377,20 @@ module Dea
             # end
             
             if freeness.isReadyForUpdate(compLifeMgr.compObj.identifier)
-              puts "update_mgr: need updateMgr.achiveFree"
+              puts "#{compIdentifier}:#{port} update_mgr: need updateMgr.achiveFree"
               updateMgr.achieveFree()
             else
               
-              puts "update_mgr: not ready for update yet, suspend AttempToUpdateThread"
+              puts "#{compIdentifier}:#{port} update_mgr: not ready for update yet, suspend AttempToUpdateThread"
 #               need testing throughly
               validCondition.wait()
-              puts "update_mgr:wait satified"
+              puts " #{compIdentifier}:#{port} update_mgr:wait satified"
             end
           end
           
         end
         
-        puts "update_mgr : before updateMgr attemptToUpdate()"
+        puts "#{compIdentifier}:#{port} update_mgr : before updateMgr attemptToUpdate()"
         updateMgr.attemptToUpdate()
         
       end # end of thread.new

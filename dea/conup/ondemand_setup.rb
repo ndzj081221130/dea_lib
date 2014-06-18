@@ -37,8 +37,7 @@ module Dea
     attr_accessor :xmlUtil
     
     def initialize(comp) # ComponentObject
-      # @depMgr = Dea::DynamicDepManager.instance(comp) #这两个也是在nodemgr.getOndemandSetupHelper时set
-      # @compLifecycleMgr = Dea::CompLifecycleManager.instance(comp)
+      
       @keyGet = comp.identifier + ":" + comp.componentVersionPort.to_s
       @identifier = comp.identifier
       
@@ -46,9 +45,7 @@ module Dea
       @ondemandRequestStatus = {}
       @confirmOndemandStatus = {}
       @ondemandRequestPorts = Hash.new
-      # txDepMonitor = Dea::TxDepMonitor.instance(comp) #这个不从这里获取，而是在nodemgr.getTxDepMonitor时，set
-#       
-      # @txDepRegistry = txDepMonitor.txDepRegistry
+      
       @xmlUtil = Dea::XMLUtil.new
 
       super()
@@ -819,11 +816,23 @@ module Dea
             Dea::DepPayload::SCOPE + ":" + @depMgr.scope.to_s + "," +
             Dea::DepPayload::SRC_PORT + ":" + host_port
                                                    
-         comm =  @xmlUtil.getAllComponentsComm
-         ip =  "192.168.12.34"
-         port =  comm[parent]
          
-         puts "#{ip},#{port}"
+         ip =  "192.168.12.34"
+         
+         nodeMgr = Dea::NodeManager.instance
+         
+         ports = nodeMgr.getComponentsViaName(parent).to_a
+          # undefined method `[]' for #<Set: {"8002", "8006"}> (NoMethodError)
+         if ports.size > 0
+           port = ports[0]
+         else
+           puts "#{@keyGet} get parent port error !!!"
+           comm =  @xmlUtil.getAllComponentsComm
+           port =  comm[parent]
+         end
+         
+         
+         puts "#{@keyGet} #{ip},#{port}"
   #                ip,port,srcIdentifier,targetIdentifier,protocol,msgType,payload,commType
          Dea::ASynCommClient.sendMsg(ip,port,hostComp,parent,
                                           "CONSISTENCY","ONDEMAND_MSG",payloadSend,"Async")
@@ -834,12 +843,19 @@ module Dea
     
     def depNotifySync(hostComp,comp,payloadSend)
          puts "ondemand : called dep notify service sync client"
-         comm =  @xmlUtil.getAllComponentsComm
-         # puts "comm"
-         ip =  "192.168.12.34"
-         port =  comm[comp]
+          
+         nodeMgr = Dea::NodeManager.instance
          
-         puts "#{ip},#{port}"
+         ports = nodeMgr.getComponentsViaName(parent).to_a
+         if ports.size > 0
+           port = ports[0]
+         else
+           comm =  @xmlUtil.getAllComponentsComm
+           puts "Error !!! comm"
+           ip =  "192.168.12.34"
+           port =  comm[comp]
+         end
+         puts "#{@keyGet} #{ip},#{port}"
   #               paras=  ip,port,srcIdentifier,targetIdentifier,protocol,msgType,payload,commType
          Dea::SynCommClient.sendMsg(ip,port,hostComp,comp,
                                           "CONSISTENCY",MsgType::ONDEMAND_MSG,payloadSend,"Sync")
@@ -847,12 +863,19 @@ module Dea
     
     def depNotifyAsync(hostComp,comp,payloadSend)
          puts "ondemand : called dep notify service async "
-         comm =  @xmlUtil.getAllComponentsComm
-         # puts "comm"
-         ip =  "192.168.12.34"
-         port =  comm[comp]
          
-         puts "#{ip},#{port}"
+         nodeMgr = Dea::NodeManager.instance
+         
+         ports = nodeMgr.getComponentsViaName(parent).to_a
+         if ports.size > 0
+           port = ports[0]
+         else
+           comm =  @xmlUtil.getAllComponentsComm
+           puts "Error comm "
+           ip =  "192.168.12.34"
+           port =  comm[comp]
+         end
+         puts "#{@keyGet} #{ip},#{port}"
   #               paras=  ip,port,srcIdentifier,targetIdentifier,protocol,msgType,payload,commType
          Dea::ASynCommClient.sendMsg(ip,port,hostComp,comp,
                                           "CONSISTENCY",MsgType::ONDEMAND_MSG,payloadSend,"Async")
@@ -876,7 +899,7 @@ module Dea
       
       puts "ondemand_setup : sendConfirmOndemandSetup : #{str} "
       
-      #TODO send ayncPost need testing
+      #  send ayncPost need testing
       # targetRef.each{|subComp|
          # payloadSend =  Dea::DepPayload::OPERATION_TYPE + ":" + Dea::DepOperationType::CONFIRM_ONDEMAND_SETUP +
                         # "," + Dea::DepPayload::SRC_COMPONENT + ":" + hostComp + 
@@ -892,8 +915,7 @@ module Dea
                         "," + Dea::DepPayload::SRC_COMPONENT + ":" + hostComp + 
                         "," + Dea::DepPayload::TARGET_COMPONENT + ":" + name
          ip =  "192.168.12.34"
-         # comm =  @xmlUtil.getAllComponentsComm
-         # port =  comm[subComp]
+         
          puts "#{hostComp} set confirm to #{name}"          
          if name != hostComp     
             Dea::ASynCommClient.sendMsg(ip,port,hostComp,name,"CONSISTENCY","ONDEMAND_MSG",payloadSend,"Async")   

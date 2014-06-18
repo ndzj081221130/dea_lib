@@ -139,7 +139,7 @@ module Dea
 
     attr_reader :query_server
     def setup_stats_query_server      
-      @query_server = Dea::QueryServer.new(config["query_ip"],config["query_port"],config  )
+      @query_server = Dea::QueryServer.new(config["query_ip"],config["query_port"],config,self  )
       @query_server.start
     end
 

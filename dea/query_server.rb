@@ -23,10 +23,12 @@ module Dea
     class Echo < EM::Connection
       attr_accessor :configCollect
       attr_accessor :configPort
+      attr_accessor :bootstrap
       
-      def initialize(config,port)
+      def initialize(config,port,boot)
         @configCollect = config
         @configPort = port
+        @bootstrap = boot
       end
       
       def receive_data(data)
@@ -56,10 +58,23 @@ module Dea
             nodeMgr = NodeManager.instance
             ports = nodeMgr.getAllPorts
             result = ports.to_a.to_json
+         
+          elsif msgType == QueryType::Instances
+             
+            result = bootstrap.instance_registry.instances.to_json
+          elsif msgType == QueryType::Instance
+            new_name = @json["componentName"] 
+            flag = @bootstrap.instance_registry.has_instances_for_application(new_name)
+            result = flag.to_json
+          elsif msgType == QueryType::DeleteComponent  
+            nodeMgr = NodeManager.instance
+            componentName = @json["componentName"]
+            result = nodeMgr.removeComponentsViaName(componentName)
           else
             result = ""
           end 
           send_data(result)
+          
         else
           
           puts "well, how should I handle this ? "  
@@ -71,17 +86,19 @@ module Dea
     attr_reader :ip
     attr_reader :port
     attr_accessor :config
+    attr_accessor :bootstrap
     
-    def initialize(ip, port,config)
+    def initialize(ip, port,config,bootstrap)
       @ip = ip
       @port = port   
       @config = config  
+      @bootstrap = bootstrap
     end
 
     def start
       EM.run do
       #puts "test"
-        EM.start_server(@ip,@port,Echo,@config,@port)#,bootstrap.instance_registry)
+        EM.start_server(@ip,@port,Echo,@config,@port ,@bootstrap)
 
         puts "start finished #{@port}"
         logger.info "Connecting query   server on #{@port}"

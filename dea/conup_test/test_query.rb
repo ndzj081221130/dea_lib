@@ -16,13 +16,44 @@ baseDir ="/vagrant/test/helloworld-jsonrpc2"
       msg["msgType"] = Dea::QueryType::Components      
       msg["componentName"] = targetIdentifier
       
-      client = Dea::ClientSyncResponse.new(ip,port,msg.to_json)
+      # client = Dea::ClientSyncResponse.new(ip,port,msg.to_json)
+#       
+      # response = client.response
+      # puts "#{response }"
+       # jsonArray = JSON::parse(response)
+       # jsonArray.each{|ports|
+         # puts "port = #{ports}"
+       #  update(ip,port,targetIdentifier,protocol,baseDir,"",scope)         
+        # }
+        # ===========================test2
+        msg["msgType"] = Dea::QueryType::Instances
+        client2 = Dea::ClientSyncResponse.new(ip,port,msg.to_json)
+        
+      response = client2.response
+      puts "\n #{response } \n"
       
-      response = client.response
-      puts "#{response }"
-       jsonArray = JSON::parse(response)
-       jsonArray.each{|ports|
-         puts "port = #{ports}"
-       #  update(ip,port,targetIdentifier,protocol,baseDir,"",scope)
-         
-        }
+
+# =====================test3 ###########################
+
+# 
+# msg["msgType"] = Dea::QueryType::Instance
+# msg["componentName"] = "db_new"
+# 
+# client3 = Dea::ClientSyncResponse.new(ip,port,msg.to_json)
+# #         
+      # response = client3.response
+      # puts "#{response }"
+
+
+
+
+
+
+
+
+
+
+
+
+
+

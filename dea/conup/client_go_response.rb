@@ -5,7 +5,7 @@ require "steno/core_ext"
 require 'json'
 
 module Dea
-  class ClientSyncResponse
+  class ClientGoResponse
     class Connector < EM::Connection
       
       attr_accessor :queue
@@ -15,7 +15,7 @@ module Dea
       end
       
       def post_init
-        send_data "zz" + @data
+        send_data   @data
         #EventMachine::stop # not this
          # close_connection_after_writing
          
@@ -24,7 +24,7 @@ module Dea
     def receive_data(data)
       #puts "Received #{data.length} bytes,data = #{data}"
       @data_received = data
-      puts @data_received
+      #puts @data_received
       @queue.push(@data_received)
       close_connection #在接受到消息后，关闭链接？
       EventMachine::stop # bu fang shi yi shi

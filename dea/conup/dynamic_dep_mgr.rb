@@ -2,7 +2,7 @@
 # conup-core
 require "steno"
 require "steno/core_ext"
-require 'minitest/spec'
+gem "minitest"
 require 'minitest/autorun'
 
 require_relative "./dep_registry"

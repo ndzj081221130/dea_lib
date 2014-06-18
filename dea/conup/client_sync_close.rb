@@ -21,9 +21,9 @@ module Dea
       end
 
     def receive_data(data)
-      puts "Received #{data.length} bytes,data = #{data}"
+     # puts "Received #{data.length} bytes,data = #{data}"
       @data_received = data
-      puts @data_received
+      #puts @data_received
       close_connection #在接受到消息后，关闭链接？
       EventMachine::stop # bu fang shi yi shi
     end

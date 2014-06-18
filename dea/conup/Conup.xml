@@ -38,8 +38,8 @@
 		</component>
 		
 		<component name="AuthComponent" collect_port="8000">
-		 	<parent>PortalComponent</parent> 
-			<parent>ProcComponent</parent> 
+		 	<!-- <parent>PortalComponent</parent> 
+			<parent>ProcComponent</parent>  -->
 		</component>
 		
 		 

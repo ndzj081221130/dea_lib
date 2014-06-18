@@ -10,6 +10,7 @@ module Dea
     
     def initiate
       isUpdated=false
+      @deletedAlready = false
     end
     
     def initUpdator(baseDir,port,instance,compIdentifier)
@@ -27,41 +28,54 @@ module Dea
         
       end
       
-        
+        @already_pushed = false
       # actually , cf push new version here ? or earlier
     end
     
     def executeUpdate(compIdentifier,instance)     #  here execute, setConstructor, is this JavaImpl's job?  
       if instance
-        cmd0 = "pwd"
-      
-          old_name = instance.application_name
-        # puts old_name
-        # tmp_name  = old_name + "_old"
-        # cmd1 = "cf rename #{old_name} #{tmp_name}"
-        # puts cmd1
-        # tar_output1 = run_with_err_output cmd1
-        # puts "exe rename result: #{tar_output1}"
-         #---------------------#
-         new_name = old_name+"_new"
-        if instance.bootstrap.instance_registry.has_instances_for_application(new_name)
-          puts "already has #{app_new} instance, no need push ,just cf increate #{new_app}"
-          
-          command = "cf increase #{app_new}"
-          
-          puts command
-          
-          tar_output = run_with_err_output(command)# command, or system will new a sub process??
-          puts "#{compIdentifier}.compUpdator , exe increase result : #{tar_output}"
-        else
-          
-          command = "cd #{@baseDir} && cf push"
-        puts command
-        tar_output = run_with_err_output(command)# command, or system will new a sub process??
-        puts "#{compIdentifier}.compUpdator , exe push result : #{tar_output}"
         
+        nodeMgr = Dea::NodeManager.instance
+        
+        pushMonitor = nodeMgr.pushMonitor
+        puts "#{@keyGet} try to enter updateMgr's push Monitor "
+        pushMonitor.synchronize do
+          
+               puts "#{@keyGet} in updateMgr's push Monitor "
+               cmd0 = "pwd"
+            
+                old_name = instance.application_name
+              puts "#{@keyGet} #{old_name}"
+              # tmp_name  = old_name + "_old"
+              # cmd1 = "cf rename #{old_name} #{tmp_name}"
+              # puts cmd1
+              # tar_output1 = run_with_err_output cmd1
+              # puts "exe rename result: #{tar_output1}"
+               #---------------------#
+               new_name = old_name+"_new"
+               @already_pushed = instance.bootstrap.instance_registry.has_instances_for_application(new_name)
+               
+               puts "#{@keyGet} . already push = #{@already_pushed}"
+              if @already_pushed
+                puts "#{@keyGet}.already has #{new_name} instance, no need push ,just cf increate #{new_name}"
+                
+                command = "cf increase #{new_name}"
+                
+                puts "#{@keyGet}.#{command}"
+                
+                tar_output = run_with_err_output(command)# command, or system will new a sub process??
+                puts "#{@keyGet}.compUpdator , exe cf increase result : #{tar_output}"
+              else
+                  
+                command = "cd #{@baseDir} && cf push"
+                puts "#{@keyGet}.#{command}"
+                tar_output = run_with_err_output(command)# command, or system will new a sub process??
+                puts "#{@keyGet}.compUpdator , exe push result : #{tar_output}"
+              
+              end
         end
         
+        puts "#{@keyGet} out updateMgr's push Monitor "
         
         isUpdated= true
         return true
@@ -80,7 +94,8 @@ module Dea
     end
     
     def cleanUpdate(compIdentifier)
-      puts "comp_updator : clean update" # 这里总是阻塞，why？
+      puts "#{@keyGet}.comp_updator : clean update" # 这里总是阻塞，why？
+      
       node = Dea::NodeManager.instance 
       
       updateMgr = node.getUpdateManager(@keyGet)
@@ -94,18 +109,44 @@ module Dea
     def finalizeOld(compIdentifier,oldVersion,newVersion,instance)
       #we need to cf delete old? may be not this... we need to stop 
       if instance
-        puts "#{compIdentifier}.compUpdator.delete old version, or first ,stop old version"
+        puts "#{@keyGet}.compUpdator.delete old version, or first ,stop old version"
         old_name = instance.application_name # old version name
-        # puts old_name
-        # tmp_name  = old_name + "_old"
-        cmd1 = "cf stop #{old_name}  "
-        puts cmd1
-        tar_output1 = run_with_err_output cmd1
-        puts "exe cf stop result: #{tar_output1}"
         
-        nodeMgr = NodeManager.instance
-        nodeMgr.removeComponentsViaName(old_name)
-               #removeComponentsViaName
+        new_name = old_name+"_new"
+        @already  = instance.bootstrap.instance_registry.has_instances_for_application(new_name)
+        if @already == false #新版本还没部署好？
+              # cmd1 = "cf stop #{old_name}  "
+              # puts "#{@keyGet}. #{cmd1}"
+              # tar_output1 = run_with_err_output cmd1
+              # puts "#{@keyGet}.exe cf stop result: #{tar_output1}"
+#               
+              # nodeMgr = NodeManager.instance
+              # nodeMgr.removeComponentsViaName(old_name)
+               puts "#{@keyGet} #{old_name}_new hasn't been pushed, do nothing" 
+               
+        else
+            # if @deletedAlready == false
+                # cmd2 = "cf delete-force #{old_name}"
+                # puts "#{@keyGet}. #{cmd2}"
+                # tar_output1 = run_with_err_output cmd2
+                # puts "#{@keyGet}.exe cf delete-force result: #{tar_output1}"
+                # @deletedAlready = true
+#                 
+                nodeMgr = NodeManager.instance
+                
+                
+                  puts " #{@keyGet} #{old_name } not removed , delete"
+                  cmd2 = "cf delete-force #{old_name}"
+                  puts "#{@keyGet}. #{cmd2}"
+                  tar_output1 = run_with_err_output cmd2
+                  puts "#{@keyGet}.exe cf delete-force result: #{tar_output1}"
+                  nodeMgr.removeComponentsViaName(old_name)
+                
+                # 
+#               
+              # 
+              # end
+        end
       end
       return true
     end

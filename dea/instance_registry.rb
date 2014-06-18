@@ -69,12 +69,14 @@ module Dea
     end
     
     def has_instances_for_application(app_name)
+      puts "called registry.has_instances_for #{app_name}"
       @instances.each{|id,instance|
-        
+        puts "instance #{instance.application_name} , #{instance.instance_id}"
         if instance.application_name == app_name
           return true
         end
         }
+        puts "has_instance for #{app_name}:false"
       return false
     end
     
