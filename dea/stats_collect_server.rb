@@ -3,12 +3,12 @@ require "steno"
 require "steno/core_ext"
 require 'json'
 require "set"
-
+require 'socket' 
 require_relative "./conup/tx_dep_monitor"
 require_relative "./conup/tx_event_type"
 require_relative "./conup/client"
 require_relative "./conup/client_sync"
-
+require_relative "./conup/client_go_response"
 require_relative "./conup/tx_lifecycle_mgr"
 require_relative "./conup/invocation_context"
 require_relative "./conup/request_object"
@@ -31,11 +31,99 @@ module Dea
         @instance = instance
       end
       
+       
+    
+    def handle_remote_msg(message)
+      
+      begin
+        
+          json = JSON::parse(message)
+     
+
+      
+          parentPort = json["ParentPort"]
+          parentName = json["ParentName"]
+          parentTx = json["ParentTx"]
+          rootTx = json["RootTx"]
+          subPort = json["SubPort"]
+          subName = json["SubName"]
+          invocationCtx = json["InvocationCtx"] #InvocationCtx
+          key = subName + ":" + subPort.to_s
+          if rootTx == nil || rootTx == ""
+                puts  "root tx = nil , no need ..."
+          else
+            puts "#{@configPort} proof that I am subComponent"
+              puts "#{key}.collect_server : i get notify  to cache invocationCtx from router  "
+              parentTx =  json["ParentTx"]
+              parentC =  json["ParentName"]
+              parentPort =  json["ParentPort"]
+              rootTx =  json["RootTx"]
+             # rootC =  json["rootComponent"]
+              target =  json["SubName"] 
+              invocationCtxFromHeader =  json["InvocationCtx"]# 空的？？？why？？？
+              puts "InvocationCtxFrom header #{invocationCtxFromHeader}"
+              #    问题 invocationContext中的fakeTx是怎么回事?主要是，call生成一个fakeSubTX，因为此时，call不知道hell的tx
+    
+            
+             name = target
+             
+             if Dea::NodeManager.instance.getComponentObject(key) == nil
+                  puts "#{key}.collect_server: component.nil #{key} "
+                  comp = Dea::ComponentObject.new(target,@configPort,alg,freeConf,deps,indeps,implType)
+                 #  一旦建立comp，就要建立一堆东西，否则，会取到空指针的
+               
+                
+                  node = Dea::NodeManager.instance
+                  
+                  node.addComponentObject(key,comp)
+                  compLifeMgr = Dea::CompLifecycleManager.new(comp,@instance)
+                   
+                  
+                  node.setCompLifecycleManager(key,compLifeMgr)
+                  
+                  txLifecycleMgr = Dea::TxLifecycleManager.new(comp)
+                  node.setTxLifecycleManager(key,txLifecycleMgr)
+                  
+                  txDepMonitor = Dea::TxDepMonitor.new(comp)
+                  node.setTxDepMonitor(key,txDepMonitor)
+                  
+                  depMgr = node.getDynamicDepManager(key)#Dea::DynamicDepManager.new(comp)
+                  depMgr.txLifecycleMgr= txLifecycleMgr
+                  depMgr.compLifecycleMgr= compLifeMgr
+                  
+                  node.getOndemandSetupHelper(key)
+                  updateMgr = node.getUpdateManager(key)
+                  updateMgr.instance = @instance
+            else
+                puts "#{key}.collect_server , component not nil"
+                txLifecycleMgr = Dea::NodeManager.instance.getTxLifecycleManager(key)
+            end
+             
+          
+            
+            invocationContext = InvocationContext.getInvocationCtx(invocationCtxFromHeader)
+            txLifecycleMgr.notifyCache(invocationContext)
+            # 走到这里，显然说明，不是一个根事务啊
+            Dea::NodeManager.instance.getTxLifecycleManager(key).resolveInvocationContext(invocationContext,name)
+           
+            puts "#{key} get msg from router"  
+              
+        
+        end
+      
+      rescue Exception => e
+        puts "Index Error: #{e} , that means , no root tx"
+        return
+      end
+
+    end
+  
+  
       def receive_data(data)
-        #send_data(data)
+        
 
         puts "port : #{@configPort  } received data:"
-        #puts data
+        
 
         handle = data[2,data.length] # there are two unknown chars
         puts handle
@@ -86,7 +174,7 @@ module Dea
             
           else
             
-            puts "new comp"
+            puts "collect_server : new comp"
             comp  = Dea::ComponentObject.new(name,@configPort,alg,freeConf,deps,indeps,implType)
             node = Dea::NodeManager.instance
             
@@ -127,10 +215,28 @@ module Dea
           #在这里拦截所有的请求？？？判断是否需要阻塞？？？
           #应该是这样的
           
-          #在notify前拦截，如果是ondemand过程，就缓存请求
-
-          if eventType == Dea::TxEventType::TransactionEnd #通知父节点，子事务结束。
-              #这里总是可以知道tx——id的吧
+          #在notify前拦截，如果是on demand过程，就缓存请求
+          if eventType == Dea::TxEventType::TransactionStart
+              # DEA向Router查询，到本实例的请求，是否是来自某个根事务？
+              router_ip = @instance.bootstrap.config["router_ip"]
+              router_port = @instance.bootstrap.config["router_port"]
+              
+              msg = {}
+  
+              msg["InstanceId"] = @instance.private_instance_id
+              ref = msg.to_json      
+              puts "#{name} send private_instance_id to router : #{@instance.private_instance_id}"
+              streamSock = TCPSocket.new( "192.168.12.34", 6666 )  
+              streamSock.write( ref )  
+              str = streamSock.recv( 1024 )  
+              puts "#{name} get from stream sock #{str}"#  str  
+              streamSock.close  
+              
+              handle_remote_msg(str)
+            
+            
+          elsif eventType == Dea::TxEventType::TransactionEnd #通知父节点，子事务结束。
+              #这里总是可以知道tx_id的吧
               name = @json["name"]
               transaction_id = @json["transaction_id"]
               keyEnd = name + ":" + @configPort.to_s
@@ -205,10 +311,11 @@ module Dea
             other_dea_ip = @json["other_dea_ip"]
             target = @json["target_comp"] #太奇怪了，这里的消息是代码传来的
             msg = {}
-            msg["parentTx"]	= transaction_id
+            msg["parentTx"]	= transaction_id #这个是在txStart时，获取的事务id。为什么parentTx和rootTx，相等？？？？
+            #事实上，不需要知道parentTx的消息，所以这里有bug，不影响
             msg["parentComponent"] = name
             msg["rootTx"] = transaction_id
-            msg["rootComponent"] = 	name # is this right???
+            msg["rootComponent"] = 	name # is this right???无需知道rootComponent，不影响
             msg["target_comp"] = target
             puts "other_dea_ip = #{other_dea_ip}"
             puts "other_dea_port #{other_dea_port}"  
@@ -218,11 +325,9 @@ module Dea
             msg["invocation_context"] = invocationCtx
             puts "collect_server : FirstRequest , invocationCtx = #{invocationCtx}" 
             # here ,we need send sync msg
-            result = Dea::ClientSync.new(other_dea_ip,other_dea_port,msg.to_json)
-            puts "#{name} notify #{other_dea_port} , and get confirm msg"
-            #puts "collect_server send data back , rootTx = #{rootTx}"
-            result = "#{name} notify #{other_dea_port} , and get confirm msg"
-            send_data(result)
+            result = invocationCtx.to_json #msg.to_json 
+            
+            send_data(result) #DEA将invocationCtx也通知给应用代码？
             close_connection_after_writing # why shutdown?
             
               
@@ -235,68 +340,121 @@ module Dea
          end
       
 
-         
-        elsif @json["rootTx"] != nil && @json["target_comp"] != nil 
+        elsif @json["msgType"] != nil && @json["msgType"] == "SubNotifyParent" 
+          #这里应该永远不会被调用才对。。。
+            # 通知调用的构件 ,关于根事务和父事务的信息"
+            #这里不仅创建InvocationContext，而且调用startRemoteContext
+            
+            parentPort = @json["ParentPort"]
+            parentName = @json["ParentName"]
+            parentTx = @json["ParentTx"]
+            rootTx = @json["RootTx"]
+            subPort = @json["SubPort"]
+            subName = @json["SubName"]
+          
+            other_dea_ip = "192.168.12.34"
+            other_dea_port = subPort
+            
+            
+            puts "#{parentName} : #{parentPort}.stats_collect_server.handle : first get msg from sub, then notify sub tx"                      
+            puts "#{parentName} : #{parentPort}.stats_collect_server.handle: notify sub dea about root tx info "
+            
+            puts "stats_collect_server.handle other_dea_ip = #{other_dea_ip}"
+            puts "stats_collect_server.handle other_dea_port #{other_dea_port}"  
+            
+            key = parentName + ":" + parentPort
+            comp = Dea::NodeManager.instance.getComponentObject(key)
+            puts comp == nil
+            
+            # 在createInvocation中， 调用parentComp.startRemoteSubTx方法，
+            txDepMonitor = Dea::NodeManager.instance.getTxDepMonitor(key)
+            puts txDepMonitor == nil
+            invocationCtx = Dea::NodeManager.instance.getTxLifecycleManager(key).createInvocation(parentName,target,txDepMonitor)
+             
+            #这里显然应该有subFakeTx了啊  
+            msg = {}
+            msg["parentTx"] =   parentTx                   
+            msg["parentComponent"] = parentName
+            msg["parentPort"] = parentPort
+            msg["rootTx"] = rootTx
+            msg["rootComponent"] = ""
+            msg["target_comp"] = subName
+            msg["invocation_context"] = invocationCtx
+            puts "#{key}.collect_server : FirstRequest , invocationCtx = #{invocationCtx}" 
+            # here ,we need send sync msg, ClientSync is not sync message!!!
+            #result = Dea::ClientSync.new(other_dea_ip,other_dea_port,msg.to_json)
+            puts "collect_server.handle #{parentName} notify #{other_dea_port} , and get confirm msg"
+            
+            send_data("#{key} already get msg from sub")
+            
+            streamSock = TCPSocket.new( "192.168.12.34", subPort )  
+            streamSock.write( msg.to_json )  
+            str = streamSock.recv( 1024 )  
+            puts "#{name} get from stream sock #{str}"#  str  
+            streamSock.close 
+                
+          
+        elsif @json["rootTx"] != nil && @json["target_comp"] != nil && @json["invocation_context"] != nil
           #这里是hello接受到call-dea发来的消息，call通知hello，关于InvocationContxt
         #  this is a sync msg ,so we need reply 
-          puts "collect_server : i get notify  to cache invocationCtx from parent  "
-          parentTx = @json["parentTx"]
-          parentC = @json["parentComponent"]
-          parentPort = @json["parentPort"]
-          rootTx = @json["rootTx"]
-          rootC = @json["rootComponent"]
-          target = @json["target_comp"] 
-          invocationCtxFromHeader = @json["invocation_context"]
-          puts "onvocationCtxFrom header #{invocationCtxFromHeader}"
-#           问题时，invocationContext中的fakeTx是怎么回事?主要是，call生成一个fakeSubTX，因为此时，call不知道hell的tx
-
-          # invocationContext = Dea::InvocationContext.new(rootTx,rootC,parentTx,parentC,"","","")
-          # here we need Hello have already notify its dea , txStart???
-          # it conflicts with ... we call txLifecycleMgr.createID when app first communicate with its dea
-             #这是什么情况？？？如果Call像Hello发请求了，但是hello还是没建立？
-             #为什么需要Call给hello建component！！反正instance启动的时候，会建立的。
-             #不对，还是要发个请求，到collect_server。才会建立的。
-             name = target
-             key = name + ":" + @configPort.to_s
-             if Dea::NodeManager.instance.getComponentObject(key) == nil
-                  puts "collect_server: component.nil #{key} "
-                  comp = Dea::ComponentObject.new(target,@configPort,alg,freeConf,deps,indeps,implType)
-                 #  一旦建立comp，就要建立一堆东西，否则，会取到空指针的
-                # txLifecycleMgr = Dea::TxLifecycleManager.new(target)
-                
-                  node = Dea::NodeManager.instance
-                  
-                  node.addComponentObject(key,comp)
-                  compLifeMgr = Dea::CompLifecycleManager.new(comp,@instance)
-                  #puts  "here???"
-                  
-                  node.setCompLifecycleManager(key,compLifeMgr)
-                  
-                  txLifecycleMgr = Dea::TxLifecycleManager.new(comp)
-                  node.setTxLifecycleManager(key,txLifecycleMgr)
-                  
-                  txDepMonitor = Dea::TxDepMonitor.new(comp)
-                  node.setTxDepMonitor(key,txDepMonitor)
-                  
-                  depMgr = node.getDynamicDepManager(key)#Dea::DynamicDepManager.new(comp)
-                  depMgr.txLifecycleMgr= txLifecycleMgr
-                  depMgr.compLifecycleMgr= compLifeMgr
-                  
-                  node.getOndemandSetupHelper(key)
-                  updateMgr = node.getUpdateManager(key)
-                  updateMgr.instance = @instance
-            else
-                puts "collect_server , component not nil"
-                txLifecycleMgr = Dea::NodeManager.instance.getTxLifecycleManager(key)
-            end
-             
-          
-            
-            invocationContext = InvocationContext.getInvocationCtx(invocationCtxFromHeader)
-            txLifecycleMgr.notifyCache(invocationContext)
-            # 走到这里，显然说明，不是一个根事务啊
-            Dea::NodeManager.instance.getTxLifecycleManager(key).resolveInvocationContext(invocationContext,name) 
-            send_data("resolve done")
+          # puts "collect_server : i get notify  to cache invocationCtx from parent  "
+          # parentTx = @json["parentTx"]
+          # parentC = @json["parentComponent"]
+          # parentPort = @json["parentPort"]
+          # rootTx = @json["rootTx"]
+          # rootC = @json["rootComponent"]
+          # target = @json["target_comp"] 
+          # invocationCtxFromHeader = @json["invocation_context"]
+          # puts "onvocationCtxFrom header #{invocationCtxFromHeader}"
+# #           问题时，invocationContext中的fakeTx是怎么回事?主要是，call生成一个fakeSubTX，因为此时，call不知道hell的tx
+# 
+          # # invocationContext = Dea::InvocationContext.new(rootTx,rootC,parentTx,parentC,"","","")
+          # # here we need Hello have already notify its dea , txStart???
+          # # it conflicts with ... we call txLifecycleMgr.createID when app first communicate with its dea
+             # #这是什么情况？？？如果Call像Hello发请求了，但是hello还是没建立？
+             # #为什么需要Call给hello建component！！反正instance启动的时候，会建立的。
+             # #不对，还是要发个请求，到collect_server。才会建立的。
+             # name = target
+             # key = name + ":" + @configPort.to_s
+             # if Dea::NodeManager.instance.getComponentObject(key) == nil
+                  # puts "collect_server: component.nil #{key} "
+                  # comp = Dea::ComponentObject.new(target,@configPort,alg,freeConf,deps,indeps,implType)
+                 # #  一旦建立comp，就要建立一堆东西，否则，会取到空指针的
+                # # txLifecycleMgr = Dea::TxLifecycleManager.new(target)
+#                 
+                  # node = Dea::NodeManager.instance
+#                   
+                  # node.addComponentObject(key,comp)
+                  # compLifeMgr = Dea::CompLifecycleManager.new(comp,@instance)
+                  # #puts  "here???"
+#                   
+                  # node.setCompLifecycleManager(key,compLifeMgr)
+#                   
+                  # txLifecycleMgr = Dea::TxLifecycleManager.new(comp)
+                  # node.setTxLifecycleManager(key,txLifecycleMgr)
+#                   
+                  # txDepMonitor = Dea::TxDepMonitor.new(comp)
+                  # node.setTxDepMonitor(key,txDepMonitor)
+#                   
+                  # depMgr = node.getDynamicDepManager(key)#Dea::DynamicDepManager.new(comp)
+                  # depMgr.txLifecycleMgr= txLifecycleMgr
+                  # depMgr.compLifecycleMgr= compLifeMgr
+#                   
+                  # node.getOndemandSetupHelper(key)
+                  # updateMgr = node.getUpdateManager(key)
+                  # updateMgr.instance = @instance
+            # else
+                # puts "collect_server , component not nil"
+                # txLifecycleMgr = Dea::NodeManager.instance.getTxLifecycleManager(key)
+            # end
+#              
+#           
+#             
+            # invocationContext = InvocationContext.getInvocationCtx(invocationCtxFromHeader)
+            # txLifecycleMgr.notifyCache(invocationContext)
+            # # 走到这里，显然说明，不是一个根事务啊
+            # Dea::NodeManager.instance.getTxLifecycleManager(key).resolveInvocationContext(invocationContext,name) 
+            send_data("#{key} resolve invocationCtx done")
             
         elsif @json["subTx"] != nil #这个条件够不？
           sub = @json["subComp"]

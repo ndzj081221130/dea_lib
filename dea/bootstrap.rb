@@ -477,7 +477,7 @@ module Dea
       # "ParentPort"=>"8002", "ParentName"=>"CallComponent", 
       # "SubPort"=>"8001",
        # "SubName"=>"HelloworldComponent"}
-
+#{"RootTx":"","ParentTx":"","ParentPort":"","ParentName":"","SubPort":"8002","SubName":""}#
     def  self.translate_attributes(attributes) #defined by zhang
       attributes = attributes.dup#数组复制
 

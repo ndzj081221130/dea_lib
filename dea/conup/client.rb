@@ -15,7 +15,7 @@ module Dea
       def post_init
      
         send_data "zz" + @data
-        #EventMachine::stop
+         
         close_connection_after_writing
          
       end
@@ -24,9 +24,7 @@ module Dea
         puts "Received #{data.length} bytes , data = #{data}"
     end
 
-    # def unbind
-      # EventMachine.stop_event_loop
-    # end
+    
      
     end
 
@@ -40,7 +38,7 @@ module Dea
       @message = msg
       EM.run do
         EM.connect(ip, port, Connector,@message) #192.168.12.34
-        # EM.stop
+         
       end
       
     end

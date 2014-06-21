@@ -41,6 +41,7 @@ module Dea
     
      def initialize(comp) # comp is ComponentObject
       @compObject = comp
+      @keyGet = comp.identifier + ":" + comp.componentVersionPort
       @txRegistry = Dea::TransactionRegistry.new
       @InvocationContexts = Array.new
       @curCachedInvocationContext = nil
@@ -56,18 +57,13 @@ module Dea
       # 1 has no parent/root
       # 2 has parent/root 
       
-      #generate an id?
-     # id = "fdfad-4525-fgsg-5644"
-     # java used InterceptorCache to share root/parent and tx/comp information between different interceptors
-     # if InterceptorCache.getInstace(compObj).getTxCtx(getThreadID())!=null
-     # then txContext = InterceptorCache.getInstace(compObj).getTxCtx(getThreadID() )
-     #else we new a txContext and add <getThreadID(), txContext > to InterceptorCache
+      #generate an id? 
       txContext = Dea::TxContext.new
       txContextCalViaCache = Dea::TxContext.new
-      puts "what?#{@InvocationContexts}"
+      puts "#{@keyGet}.txLifecycleMgr what?#{@InvocationContexts}"
       if @InvocationContexts.size < 1
         
-        puts "tx_lifecycle_mgr: no cache context，当前事务是根事务"
+        puts "#{@keyGet}.tx_lifecycle_mgr: no cache context，当前事务是根事务"
         txContext.currentTx= id
         txContext.parentTx = id
         txContext.rootTx = id
@@ -83,27 +79,19 @@ module Dea
         txContextCalViaCache.hostComponent=@compObject.identifier 
         txContextCalViaCache.parentComponent= @compObject.identifier
         txContextCalViaCache.rootComponent= @compObject.identifier   
-        puts "txLifecycleMgr: 当前事务时根事务，也存储txContext"
+        puts "#{@keyGet}.txLifecycleMgr: 当前事务时根事务，也存储txContext"
         @curCachedTxContext = txContextCalViaCache #如果没有人调用call，那么有cache？
       # invocationSequence should not be null
       #txContext.invocationSequence = ??? we don't need this
       else
-        puts "#{@compObject.identifier}.tx_life_mgr : cache not nil，当前事务是子事务 "
+        puts "#{@keyGet}.tx_life_mgr : cache not nil，当前事务是子事务 "
         puts @InvocationContexts
         puts "--- ---- ---------- to be deleted --- --- --- --- "
         
         invocationContext = @InvocationContexts.shift
-        
-        # puts "change before ? invocationCtx = #{@tx_invocation_hash[id]} "
+         
         @tx_invocation_hash[id] = invocationContext
-        
-        # @curCachedInvocationContext = invocationContext #从调用关系中，获取信息。那么，通过这个？
-        # puts "cachedInvocationCtx: #{@curCachedInvocationContext}"
-#        
-        # @curCachedInvocationContext.subTx = id 
-        # @curCachedInvocationContext.subComp = @compObject.identifier
-        
-        # puts "change after invocationCtx = #{@tx_invocation_hash[id]} "
+         
         
         txContext.currentTx=id
         txContext.parentTx = invocationContext.parentTx # invocationParent = it self
@@ -135,10 +123,7 @@ module Dea
           currentTx = id
           rootTx = currentTx  
           parentTx = currentTx
-        
-          
-          
-          
+
           @curCachedTxContext.currentTx = currentTx
           @curCachedTxContext.parentTx = parentTx
           @curCachedTxContext.rootTx  = rootTx
@@ -150,7 +135,7 @@ module Dea
           @curCachedTxContext.hostComponent = hostComponent
           @curCachedTxContext.parentComponent = parentComponent
           
-          puts "cached root tx id = #{rootTx}"
+          puts "#{@keyGet}.cached root tx id = #{rootTx}"
         elsif rootTx != nil && parentTx != nil && hostComponent != nil
           
           #当前事务是子事务
@@ -160,7 +145,7 @@ module Dea
           @curCachedTxContext.currentTx = currentTx
           
         else
-          puts "dirty data"
+          puts "#{@keyGet}.dirty data"
         end
         
         
@@ -177,11 +162,11 @@ module Dea
         
         txContext2.invocationSequence=invocationSequence
         
-        puts "tx2 = #{txContext2}"
+        puts "#{@keyGet}.tx2 = #{txContext2}"
         
 
       end
-      puts "#{@compObject.identifier}.createID #{txContext}"
+      puts "#{@keyGet}..createID #{txContext}"
       puts "-----------createID finished -------------"
       @txRegistry.addTransactionContext(id,txContext)
       # @curTxContext = txContext
@@ -214,22 +199,22 @@ module Dea
     #called by who ??? 显然时被txDepMonitor调用啊
     def rootTxEnd(hostComp,port, rootid) #TODO need testing
       key  = hostComp + ":" + port.to_s
-       puts "tx_lifecycle_mgr.rootTxEnd: hostComp = #{hostComp} , port = #{port}"
+       puts "#{@keyGet}.tx_lifecycle_mgr.rootTxEnd: hostComp = #{hostComp} , port = #{port}"
        compObject = Dea::NodeManager.instance.getComponentObject(key)
        compLifecycleMgr = Dea::NodeManager.instance.getCompLifecycleManager(key)
        # puts "tx_lifecycle_mgr: compLifecycleMgr.nil? #{compLifecycleMgr == nil}"
        updateMgr = Dea::NodeManager.instance.getUpdateManager(key)
        #   get update manager
        validToFreeSyncMonitor = compLifecycleMgr.compObj.validToFreeSyncMonitor
-       puts "tx_lifecycle_mgr: txID= #{rootid} , hostComp: #{hostComp}, compStatus: #{compLifecycleMgr.compStatus}"
-       puts "tx_life_cycle_mgr before valid.sync"
+       puts "#{@keyGet}.tx_lifecycle_mgr: txID= #{rootid} , hostComp: #{hostComp}, compStatus: #{compLifecycleMgr.compStatus}"
+       puts "#{@keyGet}.tx_life_cycle_mgr before valid.sync"
        validToFreeSyncMonitor.synchronize do
          #  testing
-         puts "tx_lifecycle_mgr.rootTxEnd: call updateMgr.removeAlgorithmOldRootTx"
+         puts "#{@keyGet}.tx_lifecycle_mgr.rootTxEnd: call updateMgr.removeAlgorithmOldRootTx"
          updateMgr.removeAlgorithmOldRootTx(rootid)
        end
        
-       puts "in txLifecycleMgr.rootTxEnd after valid.sync"
+       puts "#{@keyGet}.in txLifecycleMgr.rootTxEnd after valid.sync"
     end
     
     # TODO testing：：：needed to be considered ??? 这个反正代码我写了，但是暂时还没有测试到，
@@ -248,8 +233,8 @@ module Dea
         
          
     def initLocalSubTx(hostComp,fakeSubTx, txContextCache) # String , String , TransactionContext txCtxInCache
-        puts "txLifecycleMgr.initLocalSubTx , fakeSubTx = #{fakeSubTx}"
-        puts "#{@compObject.identifier}.tx_lifecycle_mgr : initLocalSubTx"
+        puts "#{@keyGet}.txLifecycleMgr.initLocalSubTx , fakeSubTx = #{fakeSubTx}"
+        puts "#{@keyGet}.tx_lifecycle_mgr : initLocalSubTx"
         key = @compObject.identifier + ":" + @compObject.componentVersionPort.to_s
         depMgr = Dea::NodeManager.instance.getDynamicDepManager(key)
          	 
@@ -269,7 +254,7 @@ module Dea
         txContext.currentTx=fakeSubTx
         txContext.hostComponent= hostComp
         
-	      puts "#{@compObject.identifier}.tx_lifecycle mgr: initSub host.nil? #{txContext.hostComponent == nil     }"
+	      puts "#{@keyGet}.tx_lifecycle mgr: initSub host.nil? #{txContext.hostComponent == nil     }"
         txContext.eventType=TxEventType::TransactionStart
         
         txDep = Dea::TxDep.new(Set.new, Set.new)
@@ -282,11 +267,11 @@ module Dea
         txContext.rootTx=rootTx
         txContext.rootComponent= rootComp
         
-        puts "before add fake , txRegistry = #{@txRegistry}"
+        puts "#{@keyGet}.before add fake , txRegistry = #{@txRegistry}"
         @txRegistry.addTransactionContext(fakeSubTx,txContext)
-        puts "after add fake, txRegistry = #{@txRegistry}"
+        puts "#{@keyGet}. add fake, txRegistry = #{@txRegistry}"
         
-        puts "tx_lifecycle_mgr调用ddm.initLocalSubTx之前"
+        puts "#{@keyGet}.tx_lifecycle_mgr调用ddm.initLocalSubTx之前"
         return depMgr.initLocalSubTx(txContext)
         
     end
@@ -407,21 +392,18 @@ module Dea
       hostComp = invocationCtx.parentComp # this not equals to current Component???
       
       #assert_equal(hostComp,@compObject.identifier)
-      #TODO testing 
+       
       if hostComp == @compObject.identifier
         puts "hostComp = identifier"
       else
         puts "!!!error , in start RemoteSubTx"
-        
-        
+                
       end
-      
-      
+            
       key = @compObject.identifier + ":" + @compObject.componentVersionPort.to_s
       
       ddm = Dea::NodeManager.instance.getDynamicDepManager(key)
-       
-       
+              
       compLifecycleMgr = Dea::NodeManager.instance.getCompLifecycleManager(key)
       
       ddm.notifySubTxStatus(Dea::TxEventType::TransactionStart,invocationCtx,compLifecycleMgr,nil)

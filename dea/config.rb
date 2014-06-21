@@ -42,7 +42,9 @@ module Dea
           "collect_port" => Integer,
           "collect_ip" => String,
           "query_ip" => String,
-          "query_port" => Integer,
+          "query_port" => Integer, #只要在这里加就可以了？
+          "router_ip" => String,
+          "router_port" => Integer,
           "directory_server" => {
             "v1_port" => Integer,
             "v2_port" => Integer,

@@ -16,23 +16,20 @@ module Dea
       
       def post_init
         send_data "zz" + @data
-        #EventMachine::stop # not this
-         # close_connection_after_writing
-         
+        
+          
       end
 
     def receive_data(data)
       #puts "Received #{data.length} bytes,data = #{data}"
       @data_received = data
-      puts @data_received
+       
       @queue.push(@data_received)
       close_connection #在接受到消息后，关闭链接？
       EventMachine::stop # bu fang shi yi shi
     end
 
-    # def unbind
-      # EventMachine.stop_event_loop 应该也不是这个
-    # end
+    
      
     end
 
