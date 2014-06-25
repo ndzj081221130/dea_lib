@@ -9,5 +9,10 @@ targetIdentifier = "DBComponent"
 baseDir ="/vagrant/test/helloworld-db2"
  
 protocol = "CONSISTENCY" 
-rcs.updateApp(ip,targetIdentifier,protocol,baseDir,nil)
+
+today = Time.new
+puts today
+
+
+rcs.updateApp(ip,targetIdentifier,protocol,baseDir,"db.192.168.12.34.xip.io")
 

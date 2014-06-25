@@ -34,12 +34,14 @@ module Dea
     end
     
     def removeComponentsViaName(name)
-      
+      puts "Called removeComponentsViaName #{name}"
       @compObjects.delete_if{|key,instance| instance.identifier == name} 
       @compObjects 
     end
     
-    def getComponentsViaName(name)      
+    def getComponentsViaName(name)     
+      
+      # puts "called " 
       resultPorts = Set.new
        @compObjects.each{|key,comp|
         # puts comp

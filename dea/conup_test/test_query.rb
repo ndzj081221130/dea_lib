@@ -6,8 +6,8 @@ require_relative "../conup/query_type"
 
 require 'json'
 
-targetIdentifier = "DBComponent"
-# port = "8000"
+targetIdentifier = "HelloworldComponent"
+ protocol = "auth.192.168.12.34"
 baseDir ="/vagrant/test/helloworld-jsonrpc2"
 
       ip = "192.168.12.34"
@@ -16,21 +16,23 @@ baseDir ="/vagrant/test/helloworld-jsonrpc2"
       msg["msgType"] = Dea::QueryType::Components      
       msg["componentName"] = targetIdentifier
       
-      # client = Dea::ClientSyncResponse.new(ip,port,msg.to_json)
-#       
-      # response = client.response
-      # puts "#{response }"
-       # jsonArray = JSON::parse(response)
-       # jsonArray.each{|ports|
-         # puts "port = #{ports}"
-       #  update(ip,port,targetIdentifier,protocol,baseDir,"",scope)         
-        # }
+      client = Dea::ClientSyncResponse.new(ip,port,msg.to_json)
+      
+      response = client.response
+      puts "#{response }"
+       jsonArray = JSON::parse(response)
+       jsonArray.each{|ports|
+         puts "port = #{ports}"
+       
+        }
+
+
         # ===========================test2
-        msg["msgType"] = Dea::QueryType::Instances
-        client2 = Dea::ClientSyncResponse.new(ip,port,msg.to_json)
-        
-      response = client2.response
-      puts "\n #{response } \n"
+        # msg["msgType"] = Dea::QueryType::Instances
+        # client2 = Dea::ClientSyncResponse.new(ip,port,msg.to_json)
+#         
+      # response = client2.response
+      # puts "\n #{response } \n"
       
 
 # =====================test3 ###########################

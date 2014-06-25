@@ -24,9 +24,8 @@ module Dea
         return result
       elsif args.size == 4
          result = Dea::UpdateContextPayload::OPERATION_TYPE + ":" + args[0] + "," + 
-                 Dea::UpdateContextPayload::COMP_IDENTIFIER + ":" + args[1] + "," + 
-                 Dea::UpdateContextPayload::BASE_DIR + ":" + args[2] + "," + 
-            
+                  Dea::UpdateContextPayload::COMP_IDENTIFIER + ":" + args[1] + "," + 
+                  Dea::UpdateContextPayload::BASE_DIR + ":" + args[2] + "," +            
                   Dea::UpdateContextPayload::COMPOSITE_URI + ":" + args[3]
          return result        
       elsif args.size == 5 

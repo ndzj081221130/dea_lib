@@ -19,8 +19,7 @@
 
 	<staticDeps>
 		 
-		 
-		<!-- paper sample-->
+ 
 		 
 		
 		<component name="PortalComponent" collect_port="8003">
@@ -44,7 +43,7 @@
 		
 		 
 		
-		<component name="HelloworldComponent" collect_port="8100">
+		<component name="HelloworldComponent" collect_port="8000">
 			  <parent>CallComponent</parent>
 			   <parent>PaPaComponent</parent>     
 		</component>

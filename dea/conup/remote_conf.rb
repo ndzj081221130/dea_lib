@@ -39,7 +39,7 @@ module Dea
     def update(ip,port,targetIdentifier,protocol,baseDir,compositeUri,scope)
       msgType = Dea::MsgType::REMOTE_CONF_MSG
       payload = Dea::UpdateContextPayloadCreator.createPayload(Dea::UpdateOperationType::UPDATE,
-                                                              targetIdentifier,baseDir,
+                                                               targetIdentifier,baseDir,
                                                                compositeUri,scope)
                                                               
        res = sendMsgSync(ip,port,nil,targetIdentifier,protocol,msgType,payload,Dea::CommType::SYN) 
@@ -47,7 +47,7 @@ module Dea
        return true                                               
     end
     
-    def updateApp(ip,targetIdentifier,protocol, baseDir , scope)
+    def updateApp(ip,targetIdentifier,protocol, baseDir , uri)
       
       msg = {}
       msg["msgType"] = Dea::QueryType::Components      
@@ -60,7 +60,7 @@ module Dea
       @jsonArray = JSON::parse(response)
       @jsonArray.each{|port|
          puts "port = #{port}"
-         update(ip,port,targetIdentifier,protocol,baseDir,"",scope)
+         update(ip,port,targetIdentifier,uri,baseDir,uri,nil)
          
         }
       

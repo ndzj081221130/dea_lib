@@ -407,9 +407,9 @@ module Dea
       #assert_equal(sourceComp, id)
       
       if sourceComp == id
-        puts "doNotify src = id"
+        puts "doNotify: src == id"
       else
-        puts "!!!Error not equal src,id"
+        puts "!!!Error not equal : src!=id #{src} , id = #{id}"
       end
       inDepRegistry = depMgr.inDepRegistry
       

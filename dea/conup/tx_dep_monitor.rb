@@ -34,7 +34,7 @@ module Dea
     def notify(et , curTxID , futureC , pastC) # maybe collect_server will call this method or some other Mgr will call this
       # futureC is a set with Future Services like this cn.edu.nju.moon.conup.sample.proc.services.DBService
       #there are four TxEventType , 
-      logger.info "TxDepMonitor.notify #{et} , #{curTxID}"
+      #logger.info "TxDepMonitor.notify #{et} , #{curTxID}"
       
       txContext = @txLifecycleMgr.getTransactionContext(curTxID)
       rootTx = ""

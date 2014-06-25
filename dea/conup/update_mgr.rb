@@ -244,10 +244,10 @@ module Dea
         # what should we do in DEA?只需要在baseDir传入新版本的代码的位置即可
         baseDir = payloadResolver.getParameter(Dea::UpdateContextPayload::BASE_DIR)
         classFilePath = payloadResolver.getParameter(Dea::UpdateContextPayload::CLASS_FILE_PATH)
-        contributionUri = payloadResolver.getParameter(Dea::UpdateContextPayload::CONTRIBUTION_URI)
+    #    contributionUri = payloadResolver.getParameter(Dea::UpdateContextPayload::CONTRIBUTION_URI)
         compositeUri = payloadResolver.getParameter(Dea::UpdateContextPayload::COMPOSITE_URI)
         scope = payloadResolver.getParameter(Dea::UpdateContextPayload::SCOPE)
-        puts "scope = #{scope}"
+      #  puts "scope = #{scope}"
         result = update(baseDir,port,compositeUri,compIdentifier,scope)
         
       elsif opType == Dea::UpdateOperationType::ONDEMAND

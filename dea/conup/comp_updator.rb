@@ -8,16 +8,20 @@ module Dea
     attr_accessor :isUpdated
     attr_accessor :baseDir
     
-    def initiate
+    def initialize #initialize
       isUpdated=false
       @deletedAlready = false
+       
+       setup_logging
+    
+      
     end
     
-    def initUpdator(baseDir,port,instance,compIdentifier)
+    def initUpdator(baseDir,port,compositeUri,compIdentifier)
       @baseDir = baseDir
       @keyGet = compIdentifier +":" + port
       compObj = Dea::NodeManager.instance.getComponentObject(@keyGet)
-      
+      @targetUri = compositeUri
       updateMgr = Dea::NodeManager.instance.getUpdateManager(@keyGet)
       #   here is update logic need to be changed for DEA
       updateCtx = updateMgr.updateCtx
@@ -35,28 +39,24 @@ module Dea
     def executeUpdate(compIdentifier,instance)     #  here execute, setConstructor, is this JavaImpl's job?  
       if instance
         
-        nodeMgr = Dea::NodeManager.instance
-        
-        pushMonitor = nodeMgr.pushMonitor
-        puts "#{@keyGet} try to enter updateMgr's push Monitor "
-        pushMonitor.synchronize do
-          
+              nodeMgr = Dea::NodeManager.instance
+              
+              pushMonitor = nodeMgr.pushMonitor
+              puts "#{@keyGet} try to enter updateMgr's push Monitor "
+              pushMonitor.synchronize do
+            
                puts "#{@keyGet} in updateMgr's push Monitor "
                cmd0 = "pwd"
-            
-                old_name = instance.application_name
+          
+              old_name = instance.application_name
               puts "#{@keyGet} #{old_name}"
-              # tmp_name  = old_name + "_old"
-              # cmd1 = "cf rename #{old_name} #{tmp_name}"
-              # puts cmd1
-              # tar_output1 = run_with_err_output cmd1
-              # puts "exe rename result: #{tar_output1}"
+               
                #---------------------#
                new_name = old_name+"_new"
                @already_pushed = instance.bootstrap.instance_registry.has_instances_for_application(new_name)
                
                puts "#{@keyGet} . already push = #{@already_pushed}"
-              if @already_pushed
+            if @already_pushed
                 puts "#{@keyGet}.already has #{new_name} instance, no need push ,just cf increate #{new_name}"
                 
                 command = "cf increase #{new_name}"
@@ -65,14 +65,23 @@ module Dea
                 
                 tar_output = run_with_err_output(command)# command, or system will new a sub process??
                 puts "#{@keyGet}.compUpdator , exe cf increase result : #{tar_output}"
-              else
+                
+                today = Time.new
+
+                puts "increase instance , today =  #{today}"
+                
+                logger.info("increase instance today = #{today}")
+            else
                   
                 command = "cd #{@baseDir} && cf push"
                 puts "#{@keyGet}.#{command}"
                 tar_output = run_with_err_output(command)# command, or system will new a sub process??
                 puts "#{@keyGet}.compUpdator , exe push result : #{tar_output}"
-              
-              end
+                today_push = Time.new
+                puts "push instance , today = #{today_push}"
+                
+                logger.info("push instance today = #{today_push}")
+            end
         end
         
         puts "#{@keyGet} out updateMgr's push Monitor "
@@ -115,37 +124,30 @@ module Dea
         new_name = old_name+"_new"
         @already  = instance.bootstrap.instance_registry.has_instances_for_application(new_name)
         if @already == false #新版本还没部署好？
-              # cmd1 = "cf stop #{old_name}  "
-              # puts "#{@keyGet}. #{cmd1}"
-              # tar_output1 = run_with_err_output cmd1
-              # puts "#{@keyGet}.exe cf stop result: #{tar_output1}"
-#               
-              # nodeMgr = NodeManager.instance
-              # nodeMgr.removeComponentsViaName(old_name)
+              
                puts "#{@keyGet} #{old_name}_new hasn't been pushed, do nothing" 
                
         else
-            # if @deletedAlready == false
+            
+#                 
+                nodeMgr = NodeManager.instance
+              
+                puts " #{@keyGet} #{old_name } not removed , delete map first"
+                
                 # cmd2 = "cf delete-force #{old_name}"
                 # puts "#{@keyGet}. #{cmd2}"
                 # tar_output1 = run_with_err_output cmd2
                 # puts "#{@keyGet}.exe cf delete-force result: #{tar_output1}"
-                # @deletedAlready = true
-#                 
-                nodeMgr = NodeManager.instance
                 
+                # cf unmap proc.192.168.12.34.xip.io proc
                 
-                  puts " #{@keyGet} #{old_name } not removed , delete"
-                  cmd2 = "cf delete-force #{old_name}"
-                  puts "#{@keyGet}. #{cmd2}"
-                  tar_output1 = run_with_err_output cmd2
-                  puts "#{@keyGet}.exe cf delete-force result: #{tar_output1}"
-                  nodeMgr.removeComponentsViaName(old_name)
-                
-                # 
-#               
-              # 
-              # end
+                cmd3 = "cf unmap #{@targetUri} #{old_name}"
+                puts "#{@keyGet} . #{cmd3}"
+                target_output3 = run_with_err_output cmd3
+                puts "#{@keyGet} .exe cf unmap #{@targetUri} #{old_name} result : #{target_out3}"
+                nodeMgr.removeComponentsViaName(old_name)
+              
+                 
         end
       end
       return true
@@ -154,6 +156,51 @@ module Dea
     def initNewVersion(compName, newVersoin)
       return true
     end
+    
+    def setup_logging
+      
+      @log_counter = Steno::Sink::Counter.new
+       
+       
+      logging = {}#config["logging"]
+
+      options = {
+        :sinks => [],
+      }
+
+      if logging["level"]
+        options[:default_log_level] = logging["level"].to_sym
+      end
+      logging["file"] = "/vagrant/logs/test.log"
+      if logging["file"]
+        options[:sinks] << Steno::Sink::IO.for_file(logging["file"])
+      end
+
+      if logging["syslog"]
+        Steno::Sink::Syslog.instance.open(logging["syslog"])
+        options[:sinks] << Steno::Sink::Syslog.instance
+      end
+
+      if options[:sinks].empty?
+        options[:sinks] << Steno::Sink::IO.new(STDOUT)
+      end
+
+      options[:sinks] << @log_counter
+
+      Steno.init(Steno::Config.new(options))
+      
+      puts "in setup"
+    end
+    
+    
+    private
+
+    def logger
+      @logger ||= self.class.logger
+    end
+    
+    
+    
   end
   
 end

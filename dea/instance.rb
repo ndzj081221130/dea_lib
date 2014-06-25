@@ -519,7 +519,7 @@ module Dea
 
     def start(&callback)
       p = Promise.new do
-        log(:info, "--droplet.starting, called 2ci???")
+        # log(:info, "--droplet.starting, called 2ci???")
 
         promise_state(State::BORN, State::STARTING).resolve
 

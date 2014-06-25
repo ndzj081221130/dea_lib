@@ -142,7 +142,7 @@ module Dea
         indeps = Set.new
         if instance_id != nil
           
-          logger.info "collect_server : id=#{instance_id}"
+         # logger.info "collect_server : id=#{instance_id}"
 
           transaction_id = @json["transaction_id"]
           eventType = @json["event_type"]
@@ -176,9 +176,7 @@ module Dea
             
             puts "collect_server : new comp"
             comp  = Dea::ComponentObject.new(name,@configPort,alg,freeConf,deps,indeps,implType)
-            node = Dea::NodeManager.instance
-            
-            
+            node = Dea::NodeManager.instance                      
             node.addComponentObject(key,comp)
             compLifeMgr = Dea::CompLifecycleManager.new(comp,@instance)
             node.setCompLifecycleManager(key,compLifeMgr)
@@ -398,62 +396,8 @@ module Dea
           #这里是hello接受到call-dea发来的消息，call通知hello，关于InvocationContxt
         #  this is a sync msg ,so we need reply 
           # puts "collect_server : i get notify  to cache invocationCtx from parent  "
-          # parentTx = @json["parentTx"]
-          # parentC = @json["parentComponent"]
-          # parentPort = @json["parentPort"]
-          # rootTx = @json["rootTx"]
-          # rootC = @json["rootComponent"]
-          # target = @json["target_comp"] 
-          # invocationCtxFromHeader = @json["invocation_context"]
-          # puts "onvocationCtxFrom header #{invocationCtxFromHeader}"
-# #           问题时，invocationContext中的fakeTx是怎么回事?主要是，call生成一个fakeSubTX，因为此时，call不知道hell的tx
-# 
-          # # invocationContext = Dea::InvocationContext.new(rootTx,rootC,parentTx,parentC,"","","")
-          # # here we need Hello have already notify its dea , txStart???
-          # # it conflicts with ... we call txLifecycleMgr.createID when app first communicate with its dea
-             # #这是什么情况？？？如果Call像Hello发请求了，但是hello还是没建立？
-             # #为什么需要Call给hello建component！！反正instance启动的时候，会建立的。
-             # #不对，还是要发个请求，到collect_server。才会建立的。
-             # name = target
-             # key = name + ":" + @configPort.to_s
-             # if Dea::NodeManager.instance.getComponentObject(key) == nil
-                  # puts "collect_server: component.nil #{key} "
-                  # comp = Dea::ComponentObject.new(target,@configPort,alg,freeConf,deps,indeps,implType)
-                 # #  一旦建立comp，就要建立一堆东西，否则，会取到空指针的
-                # # txLifecycleMgr = Dea::TxLifecycleManager.new(target)
-#                 
-                  # node = Dea::NodeManager.instance
-#                   
-                  # node.addComponentObject(key,comp)
-                  # compLifeMgr = Dea::CompLifecycleManager.new(comp,@instance)
-                  # #puts  "here???"
-#                   
-                  # node.setCompLifecycleManager(key,compLifeMgr)
-#                   
-                  # txLifecycleMgr = Dea::TxLifecycleManager.new(comp)
-                  # node.setTxLifecycleManager(key,txLifecycleMgr)
-#                   
-                  # txDepMonitor = Dea::TxDepMonitor.new(comp)
-                  # node.setTxDepMonitor(key,txDepMonitor)
-#                   
-                  # depMgr = node.getDynamicDepManager(key)#Dea::DynamicDepManager.new(comp)
-                  # depMgr.txLifecycleMgr= txLifecycleMgr
-                  # depMgr.compLifecycleMgr= compLifeMgr
-#                   
-                  # node.getOndemandSetupHelper(key)
-                  # updateMgr = node.getUpdateManager(key)
-                  # updateMgr.instance = @instance
-            # else
-                # puts "collect_server , component not nil"
-                # txLifecycleMgr = Dea::NodeManager.instance.getTxLifecycleManager(key)
-            # end
-#              
-#           
-#             
-            # invocationContext = InvocationContext.getInvocationCtx(invocationCtxFromHeader)
-            # txLifecycleMgr.notifyCache(invocationContext)
-            # # 走到这里，显然说明，不是一个根事务啊
-            # Dea::NodeManager.instance.getTxLifecycleManager(key).resolveInvocationContext(invocationContext,name) 
+       
+
             send_data("#{key} resolve invocationCtx done")
             
         elsif @json["subTx"] != nil #这个条件够不？
@@ -495,15 +439,19 @@ module Dea
           id = @json["targetIdentifier"]
           
           puts "payload = #{request.payload}" 
-          puts "collect_server : conf : #{  id }"
+          puts "collect_server : conf : #{  id } , port = #{ @configPort.to_s}"
           key = id +":" + @configPort.to_s #TODO testing
           updateMgr = Dea::NodeManager.instance.getUpdateManager(key) #这里的问题？？？
-          updateMgr.instance = @instance#如果不加这一句，真的会出现hello的更新转发到db上？
-          result = updateMgr.processMsg(request)
-          
-          puts "collect_server : msgType!=nil , result = #{result}"
-          # write back response
-          send_data(result)
+          if updateMgr != nil
+            updateMgr.instance = @instance#如果不加这一句，真的会出现hello的更新转发到db上？
+            result = updateMgr.processMsg(request)
+            
+            puts "collect_server : msgType!=nil , result = #{result}"
+            # write back response
+            send_data(result)
+          else
+            send_data("no updateMgr @ #{key}")
+          end
         else
           
           puts "well, how should I handle this ? "  

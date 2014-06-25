@@ -17,20 +17,20 @@ module Dea
       @dependences << depe
       
       
-      puts "DepRegistry : after add , dependences begin" 
-        @dependences.each{|dep|
-          puts dep
-        }
-        puts "dependences end \n"
+      # puts "DepRegistry : after add , dependences begin" 
+        # @dependences.each{|dep|
+          # puts dep
+        # }
+        # puts "dependences end \n"
     end
 
     def removeDependenceViaDep(depe)
        f = @dependences.delete(depe)
-      puts "DepRegistry : after removeViaDep #{dep} , dependences begin" 
-        @dependences.each{|dep|
-          puts dep
-        }
-        puts "dependences end \n"
+      # puts "DepRegistry : after removeViaDep #{dep} , dependences begin" 
+        # @dependences.each{|dep|
+          # puts dep
+        # }
+        # puts "dependences end \n"
       return f 
     end
     
@@ -38,11 +38,11 @@ module Dea
        
         f = @dependences.delete_if{|dep| dep.type == type && dep.rootTx == rootTx && 
            dep.srcCompObjIdentifier == srcComp  && dep.targetCompObjIdentifier == targetComp }#false
-        puts "DepRegistry : after remove #{srcComp} --> #{targetComp} rootTx = #{rootTx} ,type = #{type},\n dependences begin" 
-        @dependences.each{|dep|
-          puts dep
-        }
-        puts "dependences end \n"
+        # puts "DepRegistry : after remove #{srcComp} --> #{targetComp} rootTx = #{rootTx} ,type = #{type},\n dependences begin" 
+        # @dependences.each{|dep|
+          # puts dep
+        # }
+        # puts "dependences end \n"
         return f
         
          
