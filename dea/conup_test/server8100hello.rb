@@ -18,7 +18,7 @@ port = Integer(config["collect_port"])
 bias = config.bias
 new_port = port + 100
 instance = nil
-collect_server = Dea::CollectServer.new(config["collect_ip"],new_port.to_s,config,instance)
+collect_server = Dea::MessageServer.new(config["collect_ip"],new_port.to_s,config,instance)
 config.bias += 1      
 puts config.bias
     

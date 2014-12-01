@@ -29,14 +29,14 @@ module Dea
       if contains(txId) == false
         @txDeps[txId] = txDep            
       else
-         puts "txDep store"
+       #  puts "txDep store"
         @txDeps.store(txId,txDep) # @txDeps[txId] = txDep
       end
         
     end
     
     def removeLocalDep(txId)
-      puts "txDepRegistry.removeLocal #{txId}"
+     # puts "txDepRegistry.removeLocal #{txId}"
       @txDeps.delete(txId)
     end
     

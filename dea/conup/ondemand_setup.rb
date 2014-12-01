@@ -40,7 +40,7 @@ module Dea
       
       @keyGet = comp.identifier + ":" + comp.componentVersionPort.to_s
       @identifier = comp.identifier
-      
+      @logger = comp.logger
       # we don't new a helper here, instead , we set helper, when we want to use a setup
       @ondemandRequestStatus = {}
       @confirmOndemandStatus = {}
@@ -52,12 +52,13 @@ module Dea
     end
     
     def ondemand(scope) #Scope return boolean
+      puts "ondemand_setup : ondemand(scope)\n"
       hostComp =  @ondemandHelper.compObj.identifier
       port = @ondemandHelper.compObj.componentVersionPort
       if !scope
         scope = calcScope() #看来是计算scope错了啊
         
-        puts "scope = #{scope}"
+        puts "#{@keyGet}.ondemand scope = #{scope}"
       end
       
       @depMgr.scope = scope
@@ -77,7 +78,7 @@ module Dea
     def ondemandSetup(srcComp,protocol,payload)
       payloadResolver = Dea::DepPayloadResolver.new(payload)
       
-      puts "ondemand_setup: method ondemandSetup :  payload = #{payload}"
+      puts "#{@keyGet}.ondemand_setup: method ondemandSetup :  payload = #{payload}"
       operation = payloadResolver.operation
       
       puts operation
@@ -85,12 +86,12 @@ module Dea
       curComp = payloadResolver.getParameter(Dea::DepPayload::TARGET_COMPONENT)
        srcPort = payloadResolver.getParameter(Dea::DepPayload::SRC_PORT)
         
-        puts "srcPort #{srcPort}"
+        puts "#{@keyGet}.srcPort #{srcPort}"
      
      if curComp == @identifier
-       puts "currComp == identifier"
+       puts "#{@keyGet}currComp == identifier"
      else
-       puts "error!!! not equal in ondemands"
+       puts "#{@keyGet} error!!! not equal in ondemands"
      end
       if operation == Dea::DepOperationType::REQ_ONDEMAND_SETUP
         scopeString = payloadResolver.getParameter(Dea::DepPayload::SCOPE)
@@ -179,7 +180,7 @@ module Dea
     end
     
     def onDemandIsDone
-      puts "setup: called onDemandIsDone, delete status[currentObj]"
+      puts "#{@keyGet}setup: called onDemandIsDone, delete status[currentObj]"
       hostComp = @ondemandHelper.compObj.identifier
       
       @ondemandRequestStatus.delete hostComp
@@ -191,11 +192,12 @@ module Dea
     private
     # 对于依赖自己的构件，要求进行ondemand setup
     def reqOndemandSetup(currentComp,requestSrcComp,requestSrcPort) #return bool
+      puts "ondemand_setup.reqOndemandSetup()"
       hostComp = currentComp
       targetRef = nil#Set.new
       parentComps = nil#Set.new  
       scope = @depMgr.scope
-      puts "setup: scope = #{scope}" # 为啥要写scope，ddm的scope到底怎么计算的？？？？
+      puts "#{@keyGet}.setup: scope = #{scope}" # 为啥要写scope，ddm的scope到底怎么计算的？？？？
       if scope == nil
         targetRef = Set.new(depMgr.getStaticDeps) 
         parentComps = Set.new(depMgr.getStaticInDeps)
@@ -239,11 +241,11 @@ module Dea
       end
       targetRefStr =""
       targetRef.each{|t| targetRefStr += t +","}
-      puts "ondemand setup : ***#{hostComp} 's targetRef : #{targetRefStr}"
+      puts "#{@keyGet}.ondemand setup : ***#{hostComp} 's targetRef : #{targetRefStr}"
       
       parentCompsStr = ""
       parentComps.each{|p| parentCompsStr += p+","}
-      puts "ondemand setup: ***#{hostComp} 's parents: #{parentCompsStr}"
+      puts "#{@keyGet}.ondemand setup: ***#{hostComp} 's parents: #{parentCompsStr}"
       #同时，接受本构件所依赖构件发起的ondemand请求 ， 为啥parent是空的？？？
       # wait for other reqOndemandSetup
       receiveReqOndemandSetup(requestSrcComp,requestSrcPort,hostComp,parentComps)
@@ -251,11 +253,11 @@ module Dea
     end
     
     def confirmOndemandSetup(parentComp,currentComp)
-      puts "ondemand setup : **** confirmOndemandSetup from #{parentComp} , cur = #{currentComp}"
+      puts "#{@keyGet}.ondemand setup : **** confirmOndemandSetup from #{parentComp} , cur = #{currentComp}"
       
       if @compLifecycleMgr.compStatus == Dea::CompStatus::VALID # what this means ? when did I change it to valid?
         
-        puts "ondemand setup : **** component status is valid, return "
+        puts "#{@keyGet}.ondemand setup : **** component status is valid, return "
         return true
       end
       
@@ -264,11 +266,11 @@ module Dea
       if confirmStatus != nil && confirmStatus[parentComp] != nil 
         confirmStatus[parentComp] = true
       else
-        puts "setup : confirmStatus nil ? #{confirmStatus == nil}"
+        puts "#{@keyGet}.setup : confirmStatus nil ? #{confirmStatus == nil}"
         if confirmStatus
-         puts "setup: confirm[parent] == nil ? #{confirmStatus[parentComp] == nil}"
+         puts "#{@keyGet}.setup: confirm[parent] == nil ? #{confirmStatus[parentComp] == nil}"
         end
-        puts "ondemand setup : illegal status while confirm ondemand setup"
+        puts "#{@keyGet}.ondemand setup : illegal status while confirm ondemand setup"
         return false
       end
       
@@ -279,17 +281,17 @@ module Dea
             isConfirmedAll = isConfirmedAll && value
             }
           if isConfirmedAll && @compLifecycleMgr.compStatus == Dea::CompStatus::ONDEMAND
-            puts "ondemand setup : confirmOndemandSetup from #{parentComp} ,"+
+            puts "#{@keyGet}.ondemand setup : confirmOndemandSetup from #{parentComp} ,"+
                   " and confirmed all , trying to change mode to valid"
             # TODO to be tested
-             puts "currentComp = #{currentComp}"
+             puts "#{@keyGet}.currentComp = #{currentComp}"
              updateMgr = Dea::NodeManager.instance.getUpdateManager(@keyGet)
              updateMgr.ondemandSetupIsDone()
             
              sendConfirmOndemandSetup(currentComp)
           else
-            puts "setup : confirmOndemandSetup : isConfirmedAll = #{isConfirmedAll}"  
-            puts "setup: confirmOndemandSetup: compStatus = #{@compLifecycleMgr.compStatus}"
+            puts "#{@keyGet}.setup : confirmOndemandSetup : isConfirmedAll = #{isConfirmedAll}"  
+            puts "#{@keyGet}.setup: confirmOndemandSetup: compStatus = #{@compLifecycleMgr.compStatus}"
           end  
       end
       return true  
@@ -322,7 +324,7 @@ module Dea
         curTx = txContext.currentTx
         
         if rootTx == nil|| curTx == nil
-          puts "!!! ondemand setup : invalid data found while onDemandSetup"
+          puts "!!! #{@keyGet}.ondemand setup : invalid data found while onDemandSetup"
           next
         end
         
@@ -341,11 +343,11 @@ module Dea
         rtOutDeps << lpe
         
         if rootTx != curTx
-          puts "ondemand setup : current tx is #{curTx}, and root is #{rootTx}"
+          puts "#{@keyGet}.ondemand setup : current tx is #{curTx}, and root is #{rootTx}"
           next
         end
         
-        puts "ondemand setup : curTx is a rootTx"
+        puts "#{@keyGet}.ondemand setup : curTx is a rootTx"
         
         if txContext.isFakeTx
           next
@@ -477,7 +479,7 @@ module Dea
     end
     
     def notifyFutureOndemand(dep) #Dependence
-      puts "ondemand_setup : notifyFutureOndemand(Dependence deo) with #{dep.to_s}"
+      puts "#{@keyGet}.ondemand_setup : notifyFutureOndemand(Dependence deo) with #{dep.to_s}"
       
       rtInDeps = @depMgr.getRuntimeInDeps
       
@@ -514,7 +516,7 @@ module Dea
     end
     
     def notifyPastOndemand(dep)
-      puts "ondemand_setup: notifyPastOndemand (Dep) with #{dep.to_s}"
+      puts "#{@keyGet}.ondemand_setup: notifyPastOndemand (Dep) with #{dep.to_s}"
       
       rtInDeps = @depMgr.getRuntimeInDeps
       rtOutDeps = @depMgr.getRuntimeDeps
@@ -554,7 +556,7 @@ module Dea
     
     
     def notifySubFutureOndemand(dep) #Dependence
-      puts "ondemand_setup: notifySubFutureOndemand(Dependence dep) with #{dep.to_s}"
+      puts "#{@keyGet}.ondemand_setup: notifySubFutureOndemand(Dependence dep) with #{dep.to_s}"
       
       rtInDeps = @depMgr.getRuntimeInDeps
       
@@ -580,7 +582,7 @@ module Dea
    
       fDeps = getFDeps(curComp,subTx)
       
-      puts "ondemand : fDeps #{fDeps}"
+      puts "#{@keyGet}.ondemand : fDeps #{fDeps}"
       fDeps.each{|ose|
         
         if !targetRef.include? ose.targetCompObjIdentifier
@@ -602,7 +604,7 @@ module Dea
       
       sDeps = getSDeps(curComp,subTx)
       
-      puts "ondemand: sDeps #{sDeps}"
+      puts "#{@keyGet}.ondemand: sDeps #{sDeps}"
       
       sDeps.each{|ose|
         
@@ -623,7 +625,7 @@ module Dea
     end
     
     def notifySubPastOndemand(dep)
-      puts "ondemand_setup : notifySubPastOndemand (Dep) with #{dep.to_s}"
+      puts "#{@keyGet}.ondemand_setup : notifySubPastOndemand (Dep) with #{dep.to_s}"
       
       rtInDeps = @depMgr.getRuntimeInDeps
       rtOutDeps = @depMgr.getRuntimeDeps
@@ -675,42 +677,42 @@ module Dea
     
     
     def receiveReqOndemandSetup(requestSrcComp,requestSrcPort,currentComp, parentComponents) #String,String,Set<String>
-      puts "ondemand_setup : requestSrcComp = #{requestSrcComp},currentComp = #{currentComp}"
-      puts "ondemand_setup: ondemandRequestStatus #{@ondemandRequestStatus}"
+      puts "#{@keyGet}.ondemand_setup : requestSrcComp = #{requestSrcComp},currentComp = #{currentComp}"
+      puts "#{@keyGet}.ondemand_setup: ondemandRequestStatus #{@ondemandRequestStatus}"
       @ondemandRequestStatus.each{|key,value|        
-        puts "request Status , key = #{key} ,value = #{value}"
+        puts "#{@keyGet}.request Status , key = #{key} ,value = #{value}"
         }
       @ondemandRequestPorts[requestSrcPort]= requestSrcComp 
-      puts "now , ports = #{@ondemandRequestPorts}"
+      puts "#{@keyGet}.now , ports = #{@ondemandRequestPorts}"
       reqStatus = @ondemandRequestStatus[currentComp]
       
       if reqStatus[requestSrcComp] != nil
         reqStatus[requestSrcComp] = true
       else
-        puts "!!!ondemandRequestStatus doesn't contain #{requestSrcComp}"
+        puts "#{@keyGet}.!!!ondemandRequestStatus doesn't contain #{requestSrcComp}"
       end
       
-      ondemandRequestStr = "currentComp: #{currentComp}, OndemandRequestStatus:"
+      ondemandRequestStr = "#{@keyGet}.currentComp: #{currentComp}, OndemandRequestStatus:"
       reqStatus.each{|key,value|
         ondemandRequestStr += "\n\t " + key + ","+ value.to_s
         }
         
-      puts "ondemand setup: str #{ondemandRequestStr}"  
+      puts "#{@keyGet}.ondemand setup: str #{ondemandRequestStr}"  
       
       # to judge whether current component has received reqOndemandSetup(...) from
       # every in-scope outgoing static edge
       isReceivedAll = true
       
       reqStatus.each{|key,value|
-        puts "setup : received method, key = #{key}, value = #{value}"
+        puts "#{@keyGet}.setup : received method, key = #{key}, value = #{value}"
         isReceivedAll = isReceivedAll && value
         }
         
       synchronize do 
         
           if isReceivedAll && @compLifecycleMgr.compStatus == Dea::CompStatus::NORMAL
-                puts "demand_setup : received reqOndemandSetup (...) from #{requestSrcComp}"
-                puts "demand_setup : Received all reqOndemandSetup(...) , trying to change mode to ondemand"
+                puts "#{@keyGet}.demand_setup : received reqOndemandSetup (...) from #{requestSrcComp}"
+                puts "#{@keyGet}.demand_setup : Received all reqOndemandSetup(...) , trying to change mode to ondemand"
                 
                 if @depMgr.getRuntimeDeps.size != 0
                   @depMgr.getRuntimeDeps.clear
@@ -741,9 +743,9 @@ module Dea
                       
                       txStr += txCtx.to_s + "\n"
                       }
-                    puts "ondemand_setup: TxRegistry:\n #{txStr}"
+                    puts "#{@keyGet}.ondemand_setup: TxRegistry:\n #{txStr}"
                     
-                    puts "ondemand_setup : synchronizing for method onDemandSetup() in VC_ondemandSetup"
+                    puts "#{@keyGet}.ondemand_setup : synchronizing for method onDemandSetup() in VC_ondemandSetup"
                     
                     onDemandSetup()
                   end
@@ -753,7 +755,7 @@ module Dea
                confirmStatus = @confirmOndemandStatus[currentComp]
                
                if confirmStatus == nil
-                  puts "setup: currentComp : #{currentComp} , requestSrcComp : #{srcSrcComp}"
+                  puts "#{@keyGet}.setup: currentComp : #{currentComp} , requestSrcComp : #{srcSrcComp}"
                       +",compStatus : #{@compLifecycleMgr.compStatus} , confirmStatus : #{confirmStatus} "  
                   
                end
@@ -762,7 +764,7 @@ module Dea
                  isConfirmedAll = isConfirmedAll && value
                  }
                
-               puts "setup !!! isConfirmedAll = #{isConfirmedAll}"  
+               puts "#{@keyGet}.setup !!! isConfirmedAll = #{isConfirmedAll}"  
                confirmStatusStr = "currentComp: #{currentComp} , confirmOndemandStatusStr:"
                
                confirmStatus.each{|key,value|
@@ -773,21 +775,21 @@ module Dea
                if isConfirmedAll
                   if @compLifecycleMgr.compStatus == Dea::CompStatus::VALID
                     
-                    puts "ondemand : confirmed all and component status is valid"
+                    puts "#{@keyGet}.ondemand : confirmed all and component status is valid"
                     return              
                   end
                   
-                  puts "ondemand: confirmed from all parent components in receivedReqOndemandSetup(...)"
+                  puts "#{@keyGet}.ondemand: confirmed from all parent components in receivedReqOndemandSetup(...)"
                   
-                  puts "ondemand :trying to change mode to valid"
+                  puts "#{@keyGet}.ondemand :trying to change mode to valid"
                   
                   updateMgr.ondemandSetupIsDone()
                   
                   sendConfirmOndemandSetup(currentComp)
                end  
         else
-          puts "!!! : setup : not received all or comp.status != normal"
-          puts "setup : isReceivedAll= #{isReceivedAll} , compStatus = #{@compLifecycleMgr.compStatus}" 
+          puts "!!! : #{@keyGet}.setup : not received all or comp.status != normal"
+          puts "#{@keyGet}.setup : isReceivedAll= #{isReceivedAll} , compStatus = #{@compLifecycleMgr.compStatus}" 
           
           if @compLifecycleMgr.compStatus == CompStatus::VALID
              puts " #{currentComp} already valid , just set confirm "
@@ -800,13 +802,13 @@ module Dea
     
     def sendReqOndemandSetup(parentComps,hostComp)
       
-      puts "ondemand_setup : currentCompStatus = ondemand,before send req ondemand to parent component"
+      puts "#{@keyGet}.ondemand_setup : currentCompStatus = ondemand,before send req ondemand to parent component"
       
       str ="currentComp:#{hostComp} ,  sendReqOndemandSetup(...) to parentComponents "
       
       parentComps.each{|parent|str += parent +","}
       
-      puts "ondemand_setup : #{str} "
+      puts "#{@keyGet}.ondemand_setup : #{str} "
       host_port = @compLifecycleMgr.compObj.componentVersionPort      
       parentComps.each{|parent|
         #  send , need testing
@@ -842,7 +844,7 @@ module Dea
     end
     
     def depNotifySync(hostComp,comp,payloadSend)
-         puts "ondemand : called dep notify service sync client"
+         puts "#{@keyGet}.ondemand : called dep notify service sync client"
           
          nodeMgr = Dea::NodeManager.instance
          
@@ -851,7 +853,7 @@ module Dea
            port = ports[0]
          else
            comm =  @xmlUtil.getAllComponentsComm
-           puts "Error !!! comm"
+           puts "Error !!!#{@keyGet}. comm"
            ip =  "192.168.12.34"
            port =  comm[comp]
          end
@@ -862,7 +864,7 @@ module Dea
     end
     
     def depNotifyAsync(hostComp,comp,payloadSend)
-         puts "ondemand : called dep notify service async "
+         puts "#{@keyGet}.ondemand : called dep notify service async "
          
          nodeMgr = Dea::NodeManager.instance
          
@@ -893,30 +895,20 @@ module Dea
         targetRef = Set.new(scope.subComponents[hostComp])
       end
       
-      str ="ondenad_setup : sendConfirmOnDemandSetup(...) to sub components :"
+      str ="#{@keyGet}.ondenad_setup : sendConfirmOnDemandSetup(...) to sub components :"
       
       targetRef.each{|comp| str += comp}
       
-      puts "ondemand_setup : sendConfirmOndemandSetup : #{str} "
+      puts "#{@keyGet}.ondemand_setup : sendConfirmOndemandSetup : #{str} "
       
-      #  send ayncPost need testing
-      # targetRef.each{|subComp|
-         # payloadSend =  Dea::DepPayload::OPERATION_TYPE + ":" + Dea::DepOperationType::CONFIRM_ONDEMAND_SETUP +
-                        # "," + Dea::DepPayload::SRC_COMPONENT + ":" + hostComp + 
-                        # "," + Dea::DepPayload::TARGET_COMPONENT + ":" + subComp
-         # ip =  "192.168.12.34"
-         # comm =  @xmlUtil.getAllComponentsComm
-         # port =  comm[subComp]               
-         # Dea::ASynCommClient.sendMsg(ip,port,hostComp,subComp,"CONSISTENCY","ONDEMAND_MSG",payloadSend,"Async")   
-        # }
-        
+       
         @ondemandRequestPorts.each{|port,name|
          payloadSend =  Dea::DepPayload::OPERATION_TYPE + ":" + Dea::DepOperationType::CONFIRM_ONDEMAND_SETUP +
                         "," + Dea::DepPayload::SRC_COMPONENT + ":" + hostComp + 
                         "," + Dea::DepPayload::TARGET_COMPONENT + ":" + name
          ip =  "192.168.12.34"
          
-         puts "#{hostComp} set confirm to #{name}"          
+         puts "#{@keyGet}.#{hostComp} set confirm to #{name}"          
          if name != hostComp     
             Dea::ASynCommClient.sendMsg(ip,port,hostComp,name,"CONSISTENCY","ONDEMAND_MSG",payloadSend,"Async")   
          end
@@ -946,7 +938,7 @@ module Dea
           
           }
       else
-        puts "setup : in getFDeps : ondemand: no local subTx running ..." 
+        puts "#{@keyGet}.setup : in getFDeps : ondemand: no local subTx running ..." 
         
         scope = @depMgr.scope
         
@@ -1001,7 +993,7 @@ module Dea
           result << dep
           str += dep.to_s + "\n"
           }
-        puts "ondemand : in getPDeps(...), size = #{result.size} , for rootTx = #{str}"  
+        puts "#{@keyGet}.ondemand : in getPDeps(...), size = #{result.size} , for rootTx = #{str}"  
         return result
     end
     
@@ -1036,7 +1028,7 @@ module Dea
         str += dep.to_s+"\n"
         } 
         
-      puts "ondemand : in getSdeps(...) size = #{result.size} , for root = #{rootTx} , #{str}"  
+      puts "#{@keyGet}.ondemand : in getSdeps(...) size = #{result.size} , for root = #{rootTx} , #{str}"  
       return result 
     end
     
@@ -1054,17 +1046,10 @@ module Dea
         end
         }
         
-      puts "getHostSubTx(#{rootTx}) = #{subTx}"  
+      puts "#{@keyGet}.getHostSubTx(#{rootTx}) = #{subTx}"  
       
       return subTx
     end
-    
-    
-    
-    
-    
-    
-    
     
     
     

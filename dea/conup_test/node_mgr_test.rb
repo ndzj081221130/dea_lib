@@ -6,6 +6,8 @@ require_relative "../conup/component"
 require "set"
 require_relative "../conup/tx_lifecycle_mgr"
 require_relative "../conup/tx_dep_monitor"
+require_relative "../conup/query_type"
+require_relative "../conup/client_sync_response"
 
 
 id = "AuthComponent"
@@ -22,11 +24,11 @@ indeps << "PortalComponent"
 implType="Java_POJO"
  
  compAuth = Dea::ComponentObject.new(id,version,alg,freeConf,deps,indeps,implType)
-# 
+
  puts compAuth
  
-node1 = Dea::NodeManager.instance
-
+ node1 = Dea::NodeManager.instance
+ authKey = "AuthComponent:8000"
 node1.addComponentObject("AuthComponent:8000",compAuth)
 
 
@@ -34,7 +36,7 @@ node2 = Dea::NodeManager.instance
 comp = node2.getComponentObject("AuthComponent:8000")
 puts comp
  
-
+###################test2####################
 compAuth2 = Dea::ComponentObject.new(id,8100,alg,freeConf,deps,indeps,implType)
 node2.addComponentObject("AuthComponent:8100",compAuth2)
 
@@ -47,29 +49,31 @@ node1.removeComponentsViaName("AuthComponent")
 
 puts node2.compObjects
 
+authCompLifecycleMgr = Dea::CompLifecycleManager.new(comAuth,nil)
+node1.setCompLifecycleManager(authKey,authCompLifecycleMgr)
 
-# 
-# puts "-----------test txLifecycleMgr"
-# 
-# txLifecycleMgr = Dea::TxLifecycleManager.new(compAuth)
-# node1.setTxLifecycleManager(id,txLifecycleMgr)
-# 
-# puts node2.getTxLifecycleManager(id)
-# 
-# puts "-------------test ddm"
-# 
-# puts node1.getDynamicDepManager(id)
-# 
-# puts "---------test helper"
-# 
-# puts node2.getOndemandSetupHelper(id)
-# 
-# puts "---------test txDepMonitor"
-# txDepMonitor = Dea::TxDepMonitor.new(compAuth)
-# puts node2.setTxDepMonitor(id,txDepMonitor)
-# puts node1.getTxDepMonitor(id)
-# 
-# puts "-------test updateMgr"
+####################test3 #####################33      
+puts "-----------test txLifecycleMgr"
+
+txLifecycleMgr = Dea::TxLifecycleManager.new(compAuth)
+node1.setTxLifecycleManager(id,txLifecycleMgr)
+
+puts node2.getTxLifecycleManager(id)
+
+puts "-------------test ddm"
+
+puts node1.getDynamicDepManager(id)
+
+puts "---------test helper"
+
+puts node2.getOndemandSetupHelper(id)
+
+puts "---------test txDepMonitor"
+txDepMonitor = Dea::TxDepMonitor.new(compAuth)
+puts node2.setTxDepMonitor(id,txDepMonitor)
+puts node1.getTxDepMonitor(id)
+
+puts "-------test updateMgr"
 # 
 # 
 # puts node1.getUpdateManager(id)

@@ -125,27 +125,26 @@ module Dea
         @already  = instance.bootstrap.instance_registry.has_instances_for_application(new_name)
         if @already == false #新版本还没部署好？
               
-               puts "#{@keyGet} #{old_name}_new hasn't been pushed, do nothing" 
+           puts "#{@keyGet} #{old_name}_new hasn't been pushed, do nothing" 
                
         else
+          
+            nodeMgr = NodeManager.instance
+          
+            puts " #{@keyGet} #{old_name } not removed , delete map first"
             
-#                 
-                nodeMgr = NodeManager.instance
-              
-                puts " #{@keyGet} #{old_name } not removed , delete map first"
-                
-                # cmd2 = "cf delete-force #{old_name}"
-                # puts "#{@keyGet}. #{cmd2}"
-                # tar_output1 = run_with_err_output cmd2
-                # puts "#{@keyGet}.exe cf delete-force result: #{tar_output1}"
-                
-                # cf unmap proc.192.168.12.34.xip.io proc
-                
-                cmd3 = "cf unmap #{@targetUri} #{old_name}"
-                puts "#{@keyGet} . #{cmd3}"
-                target_output3 = run_with_err_output cmd3
-                puts "#{@keyGet} .exe cf unmap #{@targetUri} #{old_name} result : #{target_out3}"
-                nodeMgr.removeComponentsViaName(old_name)
+            # cmd2 = "cf delete-force #{old_name}"
+            # puts "#{@keyGet}. #{cmd2}"
+            # tar_output1 = run_with_err_output cmd2
+            # puts "#{@keyGet}.exe cf delete-force result: #{tar_output1}"
+            
+            # cf unmap proc.192.168.12.34.xip.io proc
+            
+            cmd3 = "cf unmap #{@targetUri} #{old_name}"
+            puts "#{@keyGet} . #{cmd3}"
+            target_output3 = run_with_err_output cmd3
+            puts "#{@keyGet} .exe cf unmap #{@targetUri} #{old_name} result : #{target_out3}"
+            nodeMgr.removeComponentsViaName(old_name)
               
                  
         end
@@ -171,7 +170,7 @@ module Dea
       if logging["level"]
         options[:default_log_level] = logging["level"].to_sym
       end
-      logging["file"] = "/vagrant/logs/test.log"
+      logging["file"] = "/vagrant/logs/updator.log"
       if logging["file"]
         options[:sinks] << Steno::Sink::IO.for_file(logging["file"])
       end
@@ -189,7 +188,7 @@ module Dea
 
       Steno.init(Steno::Config.new(options))
       
-      puts "in setup"
+       
     end
     
     

@@ -26,13 +26,14 @@ module Dea
     
     attr_accessor :txLifecycleMgr
     
-    
+    attr_accessor :logger
+    attr_accessor :keyGet
     def initialize(compObject) # we need a componentObject here
       @inDepRegistry = Dea::DependenceRegistry.new
       @outDepRegistry = Dea::DependenceRegistry.new
       @compObj = compObject 
       @algorithm = Dea::VersionConsistency.new
-      
+      @logger = compObject.logger
       @keyGet = @compObj.identifier + ":" + @compObj.componentVersionPort.to_s
        
 	    # @compLifecycleMgr = Dea::CompLifecycleManager.instance(@compObj)
@@ -46,22 +47,22 @@ module Dea
       #assert_equal(hostComp,@compObj.identifier)
       
       if hostComp== @compObj.identifier
-        puts "in dependenceChanged, equal !"
+        @logger.debug "#{@keyGet}.ddm in dependenceChanged, equal !"
       else
-        puts "!!!error not equal"
+        @logger.debug "#{@keyGet}.ddm !!!error not equal"
       end
       if @compObj.isTargetComp
         # TODO get UpdateManager and updateManager.checkFreeness
-        puts "ddm dependenceChanged , call updateMgr.checkFreeness"
+        @logger.debug "#{@keyGet}.ddm dependenceChanged , call updateMgr.checkFreeness"
         updateManager = NodeManager.instance.getUpdateManager(@keyGet)
         updateManager.checkFreeness(@keyGet)
       else
-        puts "ddm.dependenceChanged, #{@keyGet} not target , cause not received update request "
+        @logger.debug "#{@keyGet}.ddm.dependenceChanged, #{@keyGet} not target , cause not received update request "
       end
     end
     
     def dynamicUpdateIsDone
-      puts "ddm: called dynamicUpdateIsDone"
+      @logger.debug "#{@keyGet}.ddm: called dynamicUpdateIsDone"
       return algorithm.updateIsDone(@compObj.identifier, self)
     end
     
@@ -98,7 +99,7 @@ module Dea
     end
     
     def initLocalSubTx(txContext) #TransactionContext
-	    puts "#{@compObj.identifier}.ddm: init sub compLifecycleMgr.nil?#{@compLifecycleMgr == nil}"
+	    @logger.debug "#{@keyGet}.ddm: init sub compLifecycleMgr.nil?#{@compLifecycleMgr == nil}"
       return @algorithm.initLocalSubTx(txContext, @compLifecycleMgr ,self)
     end
     
@@ -112,18 +113,18 @@ module Dea
     end
     
     def manageDependencePayload(payload) #String
-      puts "ddm : manageDependecePayload"
+      @logger.debug "#{@keyGet}.ddm : manageDependecePayload"
       plResolver = DepPayloadResolver.new(payload)
       
       operation = plResolver.operation
-      puts "ddm operation = #{operation}"
+      @logger.debug "#{@keyGet}.ddm operation = #{operation}"
       params = getParamFromPayload(plResolver)
-      puts "ddm params #{params}"
+      @logger.debug "#{@keyGet}.ddm params #{params}"
       return @algorithm.manageDependence4(operation , params, self, @compLifecycleMgr)
     end
     # private method
     def manageDependence(txContext) #TransactionContext
-      puts "#{@compObj.identifier}.ddm : in manageDepedence(txCtx) compLifecycleMgr.nil #{@compLifecycleMgr == nil }"
+      @logger.debug "#{@keyGet}.ddm : in manageDepedence(txCtx) compLifecycleMgr.nil #{@compLifecycleMgr == nil }"
       @algorithm.manageDependence3(txContext, self, @compLifecycleMgr)
       return true
     end
@@ -131,11 +132,11 @@ module Dea
     # this method is called by TxDepMonitor.notify
     def manageTx(txContext) # TransactionContext 
       curTxID = txContext.currentTx
-      puts "#{@compObj.identifier}.ddm: in ManageTx  "
-      #puts @txLifecycleMgr ==nil
+      @logger.debug "#{@keyGet}.ddm: in ManageTx  "
+       
       @txLifecycleMgr.updateTxContext(curTxID, txContext)
       
-	    puts "#{@compObj.identifier}.ddm : txLifecycleMgr.txRegistry: #{@txLifecycleMgr.txRegistry}"
+	    @logger.debug "#{@keyGet}.ddm : txLifecycleMgr.txRegistry: #{@txLifecycleMgr.txRegistry}"
       return manageDependence(txContext)
     end
     
@@ -146,15 +147,15 @@ module Dea
            inDep += dep.to_s + ","
            
         }
-      puts "#{@compObj.identifier}.ddm : inDep = #{inDep}"  
+      @logger.debug "#{@keyGet}.ddm : inDep = #{inDep}"  
         
       outDep =""
       @outDepRegistry.dependences.each{|dep|
         outDep+= dep.to_s+ " ,"
         }  
-      puts "#{@compObj.identifier}.ddm: outDep = #{outDep}"
+      @logger.debug "#{@keyGet}.ddm: outDep = #{outDep}"
       txs = getTxs()
-      puts "#{@compObj.identifier}.ddm: ondemandSetupIsDone,Tx: #{txs}"  
+      @logger.debug "#{@keyGet}.ddm: ondemandSetupIsDone,Tx: #{txs}"  
       algorithm.initiate(@compObj.identifier , self)
       
     end
@@ -178,7 +179,7 @@ module Dea
       # why!!! why not use invocationCtx!!!
       #                    TxEventType , InvocationContext, ComponentLifecycleMgr, String
       id = componentLifecycleMgr.compObj.identifier
-      puts "#{id}.ddm调用notifySubTxStatus,then call algorithm.notifySubTxStatus"
+      @logger.debug "#{@keyGet}.ddm调用notifySubTxStatus,then call algorithm.notifySubTxStatus"
       return @algorithm.notifySubTxStatus(subTxStatus, invocationCtx, componentLifecycleMgr , self,proxyRootTxId)          
     end
     

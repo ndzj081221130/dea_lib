@@ -26,9 +26,9 @@ module Dea
       @compIdentifier = componentObject.identifier
       @compObj = componentObject
       key = @compIdentifier + ":" + componentObject.componentVersionPort.to_s
-      
+      @logger = @compObj.logger
       @txLifecycleMgr = Dea::NodeManager.instance.getTxLifecycleManager(key)
-     
+      @keyGet = key
     end
    
     def notify(et , curTxID , futureC , pastC) # maybe collect_server will call this method or some other Mgr will call this
@@ -63,10 +63,10 @@ module Dea
       dynamicDepMgr = Dea::NodeManager.instance.getDynamicDepManager(key)
                  
       result = dynamicDepMgr.manageTx(txContext)
-      puts "tx_dep_monitor: ddm.manageTx result = #{result}"
+      @logger.debug "#{@keyGet}.tx_dep_monitor: ddm.manageTx result = #{result}"
       if(et == Dea::TxEventType::TransactionEnd) #如果是事务结束，则删除TxCtx和local边
         
-        puts "tx_dep_monitor: handle TxEnd"
+        @logger.debug "#{@keyGet}.tx_dep_monitor: handle TxEnd"
         @txLifecycleMgr.removeTransactionContext(curTxID)
         @txDepRegistry.removeLocalDep(curTxID)
         
@@ -75,10 +75,10 @@ module Dea
         updateMgr = Dea::NodeManager.instance.getUpdateManager(key)
         
         if compLifecycleMgr.compStatus == Dea::CompStatus::VALID && updateMgr.isDynamicUpdateRqstRCVD()
-          puts "tx_dep_monitor: call updateMgr.attemptToUpdate"
+          @logger.debug "#{@keyGet}.tx_dep_monitor: call updateMgr.attemptToUpdate"
           updateMgr.attemptToUpdate()
         else
-          puts "tx_dep_monitor: 不能调用attemptToUpdate, status = #{compLifecycleMgr.compStatus}, rqstRCVD = #{updateMgr.isDynamicUpdateRqstRCVD}"
+          @logger.debug "#{@keyGet}.tx_dep_monitor: 不能调用attemptToUpdate, status = #{compLifecycleMgr.compStatus}, rqstRCVD = #{updateMgr.isDynamicUpdateRqstRCVD}"
           
         end
       end
@@ -89,7 +89,7 @@ module Dea
     
     def isLastUse(txId, targetCompIdentifier, hostComp  ) #String,String,String
       #fservices = lddm.getFuture() #TODO need testing
-       puts "txDepMonitor.isLastUse : targetComp = #{targetCompIdentifier}, host = #{hostComp}"
+       @logger.debug "#{@keyGet}.txDepMonitor.isLastUse : targetComp = #{targetCompIdentifier}, host = #{hostComp}"
       # get isLastUse from app? or what??
     #  tmpFutureServices = Set.new(fservices)
      #  tmpFutureServices.each{|fs|
@@ -108,7 +108,7 @@ module Dea
           return false
         end
       else
-        puts "txDepMonitor.isLastUse, txDep nil"
+        @logger.debug "#{@keyGet}.txDepMonitor.isLastUse, txDep nil"
       end
       #tmpFutureServices.each{|fs|
         
@@ -121,14 +121,11 @@ module Dea
     #  how should I handle lddm??? 这个用消息来传递啊，
     #原来的java代码是通过查询lddm获得的，这里我们当接受到的消息写Future集合为空时，返回false
    
-   # def whetherUseInFuture
-    #  return fasle      
-    #end
     
-    # cn.edu.nju.moon.conup.sample.proc.services.DBService
-    # we can only get what service to be used in the future
-    # so we need to change service to component
-    # but my Future and Past Components is sent by clients ,so needn't these two methods
+    
+     
+    # but my Future and Past Components is sent by clients ,
+    # #so needn't these two methods
     def convertServicesToComponents(services,hostComp) # Set<string>,String
       #TODO应该用不到
       res = Set.new

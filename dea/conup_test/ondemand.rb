@@ -1,5 +1,6 @@
 # UTF-8
 require_relative "../conup/remote_conf"
+require_relative "../conup/query_type"
 require 'date'
 
 
@@ -13,5 +14,9 @@ compositeUri="auth.192.168.12.34.xip.io"
 protocol = "CONSISTENCY" 
 today = Time.new
 puts today
-rcs.updateApp(ip,targetIdentifier,protocol,baseDir,compositeUri)
 
+targetPort = "8000" 
+               
+     res = rcs.changeComponentTo(ip,targetIdentifier,targetPort,
+               Dea::QueryType::UpdateComponentOndemand)
+puts  res

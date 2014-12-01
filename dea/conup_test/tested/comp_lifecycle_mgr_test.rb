@@ -3,7 +3,7 @@
 require "../conup/comp_lifecycle_mgr"
 require "../conup/version_consistency"
 id = "AuthComponent"
-version ="1.0"
+version ="9010"
 alg="consistency"
 freeConf="concurrent_version_for_freeness"
 deps = Array.new #children#
@@ -16,10 +16,7 @@ implType="Java_POJO"
  
 compAuth = Dea::ComponentObject.new(id,version,alg,freeConf,deps,indeps,implType)
 algorithm = Dea::VersionConsistency.new
-
-# ddm = Dea::DynamicDepManager.new(compAuth)
-# ddm.compObj = compAuth
-# ddm.algorithm = algorithm
+ 
  
  node1 = Dea::NodeManager.instance
 
@@ -30,7 +27,7 @@ node2 = Dea::NodeManager.instance
 comp = node2.getComponentObject("AuthComponent")
 puts comp
 
-compAuthLifecycleMgr = Dea::CompLifecycleManager.new(compAuth)
+compAuthLifecycleMgr = Dea::CompLifecycleManager.new(compAuth,nil)
 node2.setCompLifecycleManager(id,compAuthLifecycleMgr)
 
 compLifecycleMgr = node1.getCompLifecycleManager("AuthComponent")
@@ -47,25 +44,25 @@ puts "-------------test ddm"
 
 puts node1.getDynamicDepManager(id)
 
-mgr = Dea::CompLifecycleManager.new(compAuth)
+mgr = Dea::CompLifecycleManager.new(compAuth,nil)
 
 mgr.transitToNormal 
 
 puts mgr.compStatus #NORMAL
 
 mgr.transitToValid
-puts "isReadyForUpdate?"
-
-puts mgr.isReadyForUpdate
-puts mgr.isNormal #false
-puts mgr.isValid #true
-
-mgr.transitToUpdating 
-puts mgr.isFree # false
-
-mgr.transitToFree
-puts "isReadyForUpdate?"
-puts mgr.isReadyForUpdate
-puts mgr.isOndemandSetting #false
+# puts "isReadyForUpdate?"
+# 
+# puts mgr.isReadyForUpdate
+# puts mgr.isNormal #false
+# puts mgr.isValid #true
+# 
+# mgr.transitToUpdating 
+# puts mgr.isFree # false
+# 
+# mgr.transitToFree
+# puts "isReadyForUpdate?"
+# puts mgr.isReadyForUpdate
+# puts mgr.isOndemandSetting #false
 
 # mgr.transitTo

@@ -19,7 +19,7 @@ module Dea
     # attr_accessor :instance
     
     def initialize
-      @compObjects = {}
+      @compObjects = {} #是hash？
       @depMgrs = {}
       @ondemandHelpers = {}
       @txLifecycleMgrs = {}
@@ -41,16 +41,20 @@ module Dea
     
     def getComponentsViaName(name)     
       
-      # puts "called " 
+     
       resultPorts = Set.new
        @compObjects.each{|key,comp|
-        # puts comp
+        
          if comp.identifier == name
            
            resultPorts << comp.componentVersionPort
          end
          }
       resultPorts
+    end
+    
+    def getAllComponents
+      return @compObjects
     end
     
     def getKeysViaName(name)      
@@ -105,7 +109,7 @@ module Dea
     end
     
     #   getCompLifecycleManager
-    def getCompLifecycleManager(compIdentifier) #here id = name+port
+    def getCompLifecycleManager(compIdentifier) #here id = name+":"+port
       compObj = nil
       compLifecycleMgr = nil
       @syncMonitor.synchronize do
@@ -126,7 +130,7 @@ module Dea
       compLifecycleMgr
     end
     
-    def setCompLifecycleManager(identifier,compLifecycleMgr)
+    def setCompLifecycleManager(identifier,compLifecycleMgr) # name+":" +port
       compObj = nil
       @syncMonitor.synchronize do 
         compObj = getComponentObject(identifier)

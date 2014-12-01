@@ -3,10 +3,10 @@
 require "steno"
 require "steno/core_ext"
 require "monitor"
-
+require 'logger'
 module Dea
   class ComponentObject
-    attr_accessor :identifier #String
+    attr_accessor :identifier #String, name
     attr_accessor :componentVersionPort #String
     
     attr_accessor :algorithmConf #String
@@ -32,8 +32,10 @@ module Dea
     attr_accessor :freezeSyncMonitor #sync object
     attr_accessor :freezeCondition
     
+    attr_accessor :logger
     def initialize(id,versionPort,algconf,freeConf, deps, indeps,impltype)
       puts "called component initialized!!!"
+      logger.debug "comp initialize"
       @identifier = id
       @componentVersionPort = versionPort
       @algorithmConf = algconf
@@ -64,7 +66,14 @@ module Dea
       @freezeSyncMonitor.extend(MonitorMixin)
       @freezeCondition = @freezeSyncMonitor.new_cond
     end
-     
+    
+    def logger
+      @logger ||= Logger.new("/vagrant/logs/comp.log")
+    end
+
+    def logger=(logger)
+      @logger = logger
+    end 
     
     def updateIsReceived
       @isTargetComp= true

@@ -82,7 +82,7 @@ module Dea
       setup_sweepers
       setup_nats
       setup_router_client
-       setup_stats_query_server
+      setup_stats_query_server
     end
 
     def setup_varz
@@ -847,7 +847,7 @@ module Dea
 
     def periodic_varz_update
       mem_required = config.minimum_staging_memory_mb
-      #logger.debug2("zhang:mem_required=#{mem_required}")
+       
       disk_required = config.minimum_staging_disk_mb
       reservable_stagers = resource_manager.number_reservable(mem_required, disk_required)
       available_memory_ratio = resource_manager.available_memory_ratio

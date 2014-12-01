@@ -43,7 +43,7 @@ module Dea
                                                                compositeUri,scope)
                                                               
        res = sendMsgSync(ip,port,nil,targetIdentifier,protocol,msgType,payload,Dea::CommType::SYN) 
-       puts "res = #{res}"        
+       puts "update res = #{res}"        
        return true                                               
     end
     
@@ -53,18 +53,16 @@ module Dea
       msg["msgType"] = Dea::QueryType::Components      
       msg["componentName"] = targetIdentifier
       
-      client = Dea::ClientSyncResponse.new(ip,"8700",msg.to_json)
-      
+      client = Dea::ClientSyncResponse.new(ip,"8700",msg.to_json)   
       response = client.response
-      puts "updateApp , #{response }"
+      puts "updateApp , res = #{response }"
       @jsonArray = JSON::parse(response)
       @jsonArray.each{|port|
          puts "port = #{port}"
-         update(ip,port,targetIdentifier,uri,baseDir,uri,nil)
+         update(ip,port,targetIdentifier,uri,baseDir,uri,nil) #update each instance of the app
          
         }
-      
-      
+           
     end
     
     
@@ -73,7 +71,7 @@ module Dea
       payload = Dea::UpdateContextPayloadCreator.createPayload(Dea::UpdateOperationType::ONDEMAND,
                                                                targetIdentifier,scope)
       res = sendMsgSync(ip,port,nil,targetIdentifier,protocol,msgType,payload,Dea::CommType::SYN)
-      puts "res = res"      
+      puts "ondemand res = #{res}"      
       return true                                                   
     end
     
@@ -85,9 +83,22 @@ module Dea
       return true
     end
     
+    
+    def changeComponentTo(ip,componentName,componentVersionPort,msgType)
+            
+      msg = {}
+      msg["componentName"] = componentName
+      msg["componentVersionPort"] = componentVersionPort
+      msg["msgType"] = msgType
+      client = Dea::ClientSyncResponse.new(ip,"8700",msg.to_json)   
+      response = client.response
+      puts "changeComponentTo , res = #{response }"
+    end
+    
     def getExecutionRecorder(ip,port,targetIdentifier,protocol)
       msgType = Dea::MsgType::EXPERIMENT_MSG
-      payload = Dea::UpdateContextPayloadCreator.createPayload(Dea::UpdateOperationType::GET_EXECUTION_RECORDER,targetIdentifier)
+      payload = Dea::UpdateContextPayloadCreator.createPayload(Dea::UpdateOperationType::GET_EXECUTION_RECORDER,
+                                                                targetIdentifier)
       
       return  sendMsg(ip,port,nil,targetIdentifier,protocol,msgType,payload,Dea::CommType::SYN)
     end

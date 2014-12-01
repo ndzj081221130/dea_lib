@@ -6,9 +6,7 @@ module Dea
   class Config
     attr_accessor :bias
     attr_accessor :mapCollect
-    # def initialize
-      # bias=0
-    # end
+     
     EMPTY_CONFIG = {
       "intervals" => {},
       "status"    => {},

@@ -85,7 +85,7 @@ module Dea
 
     def promise_warden_call(connection_name, request)
       Promise.new do |p|
-        logger.debug2("in promise_warden_call #{request.inspect}")
+        #logger.debug2("in promise_warden_call #{request.inspect}")
         connection = promise_warden_connection(connection_name).resolve
         connection.call(request) do |result|
           logger.debug2(result.inspect)
@@ -112,7 +112,7 @@ module Dea
       Promise.new do |p|
         response = nil
         count = 0
-        logger.debug("in promise_warden_call_with_retry #{connection_name}")
+       # logger.debug("in promise_warden_call_with_retry #{connection_name}")
         begin
           response = promise_warden_call(connection_name, request).resolve
         rescue ::EM::Warden::Client::ConnectionError => error
@@ -183,7 +183,7 @@ module Dea
       Promise.new do |p|
         request = ::Warden::Protocol::LimitMemoryRequest.new
         request.handle = container_handle
-        logger.debug("zhang: in promise_limit_memroy: #{memory_limit_in_bytes}")
+       # logger.debug("zhang: in promise_limit_memroy: #{memory_limit_in_bytes}")
         request.limit_in_bytes = memory_limit_in_bytes
         promise_warden_call(:app, request).resolve
         p.deliver
@@ -232,7 +232,7 @@ module Dea
       Promise.new do |p|
         request = ::Warden::Protocol::DestroyRequest.new
         request.handle = container_handle
-        logger.info("--- zhang in promise_destroy ")
+        logger.info("---   in promise_destroy ")
         
         begin
           promise_warden_call_with_retry(:app, request).resolve

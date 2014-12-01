@@ -144,12 +144,9 @@ module Dea
       
       
        @compUpdator.finalizeOld(compIdentifier,@updateCtx.oldVerClass,@updateCtx.newVerClass,@instance)
-       # puts "a"
-       @compUpdator.initNewVersion(compIdentifier,@updateCtx.newVerClass)
-       # puts "aa"
-       @compUpdator.cleanUpdate(compIdentifier) 
-       # puts "af"
-       @compUpdator = CompUpdator.new()
+        @compUpdator.initNewVersion(compIdentifier,@updateCtx.newVerClass)
+        @compUpdator.cleanUpdate(compIdentifier) 
+        @compUpdator = CompUpdator.new()
         
        node = Dea::NodeManager.instance
        
@@ -280,7 +277,8 @@ module Dea
     end
     
      def notifyInterceptors(eventType)
-      puts "update manager : notify interceptors" #TODO what to notify?
+      puts "update manager : notify interceptors #{eventType}" 
+      #TODO what to notify?原先是通知拦截器的，现在拦截器交由router做了，因此不需要再去notify interceptors了
     end
     
     public
@@ -289,7 +287,7 @@ module Dea
       msgType = reqObj.msgType
       
       if msgType == Dea::MsgType::DEPENDENCE_MSG
-        puts "update_mgr : process dependece msg"
+        puts "update_mgr : process dependence msg"
         return manageDep(reqObj)
       elsif msgType == Dea::MsgType::ONDEMAND_MSG
         return manageOndemand(reqObj)
@@ -325,7 +323,7 @@ module Dea
         puts "update_mgr: before ondemandSetupScope"
         ondemandHelper.ondemandSetupScope(scope)
         
-        puts "update_mgr: after ondemandHelper"
+        puts "update_mgr: after ondemandHelper setup scope"
       end
       
        attemptUpdateThread = Thread.new(self,@compLifecycleMgr) do |updateMgr,compLifeMgr|
@@ -334,18 +332,18 @@ module Dea
         ondemandSyncMonitor = compLifeMgr.compObj.ondemandSyncMonitor
         ondemandCondition = compLifeMgr.compObj.ondemandCondition
         
-        ondemandSyncMonitor.synchronize do # dead lock ???
+        ondemandSyncMonitor.synchronize do # why is dead lock ???
           puts "update_mgr: in ondemandMonitor , before depMgr.isOndemandSetupRequired"
           
           compStatus = compLifeMgr.compStatus
           
           if compStatus == Dea::CompStatus::NORMAL || compStatus == Dea::CompStatus::ONDEMAND
-            puts "update_mgr: ------in update:    ondemandSyncMonitor.wait(); -----"
+            puts "update_mgr: ------in update(): ondemandSyncMonitor.wait() -----"
             puts "update_mgr : status = #{compStatus}"
-            ondemandCondition.wait#   need testing , dead lock ??? 开个多线程，妥妥的
-            puts "update_mgr : wait condition satisfied"
+            ondemandCondition.wait #   need testing , dead lock ??? 开个多线程，妥妥的
+            puts "update_mgr : wait condition satisfied in update()"
           else
-            puts "update_mgr : update in ondemandSync, in else : compStatus =  #{compStatus}"  
+            puts "update_mgr : update in ondemandSync, in else branch: compStatus =  #{compStatus}"  
           end
                  
         end # end of monitor
@@ -356,20 +354,20 @@ module Dea
           puts "#{compIdentifier}:#{port}.update_mgr : inside validMonitor"
           updateCtx = updateMgr.updateCtx #这个被加锁了？？？
           if compLifeMgr.compStatus == Dea::CompStatus::VALID && updateMgr.isDynamicUpdateRqstRCVD
-            puts "#{compIdentifier}:#{port}.update_mgr : compstatus == valid && isDynamicUpdateRqstRVCD == true"
+            puts "#{compIdentifier}:#{port}.update_mgr : in if branch :compstatus == valid && isDynamicUpdateRqstRVCD == true"
             flag = @updateCtx.isOldRootTxsInitiated()
             puts "#{compIdentifier}:#{port} flag =  #{flag}"
             if !flag  
               puts "#{compIdentifier}:#{port} update_mgr : initOldRootTxs()"
               updateMgr.initOldRootTxs()
-              puts " #{compIdentifier}:#{port} update_mgr: after updatMgr.initOldRootTxs()"
+              puts "#{compIdentifier}:#{port} update_mgr: after updatMgr.initOldRootTxs()"
             else
-              puts " #{compIdentifier}:#{port} update_mgr : in else"
+              puts "#{compIdentifier}:#{port} update_mgr : in else branch, isOldInit = true"
             end
             
             # freenesConf = compLifeMgr.compObj.freenessConf 
             #好像阻塞在这里了？？？？为什么？？？？ 这里还是在多线程里面的
-            # puts freenessConf #这一句？？？因为这里去获取了compObj，我估计因为comp是不是被锁住了？？？
+            # puts freenessConf 这一句？？？因为这里去获取了compObj，我估计因为comp是不是被锁住了？？？
             # if freenessConf == "blocking_strategy"
               freeness = Dea::BlockingFreenessStrategy.new(@compLifecycleMgr)
             # else
@@ -377,25 +375,25 @@ module Dea
             # end
             
             if freeness.isReadyForUpdate(compLifeMgr.compObj.identifier)
-              puts "#{compIdentifier}:#{port} update_mgr: need updateMgr.achiveFree"
+              puts "#{compIdentifier}:#{port} update_mgr: before call updateMgr.achiveFree"
               updateMgr.achieveFree()
             else
               
               puts "#{compIdentifier}:#{port} update_mgr: not ready for update yet, suspend AttempToUpdateThread"
 #               need testing throughly
               validCondition.wait()
-              puts " #{compIdentifier}:#{port} update_mgr:wait satified"
+              puts " #{compIdentifier}:#{port} update_mgr:wait sastified in validMonitor"
             end
           end
           
         end
         
-        puts "#{compIdentifier}:#{port} update_mgr : before updateMgr attemptToUpdate()"
+        puts "#{compIdentifier}:#{port} update_mgr : before updateMgr call attemptToUpdate()"
         updateMgr.attemptToUpdate()
         
       end # end of thread.new
      
-      # attemptUpdateThread.join , here i did not use a thread , but can add here
+      # attemptUpdateThread.join , 
       return true
     end
     
@@ -404,7 +402,7 @@ module Dea
         @updateCtx.removeAlgorithmOldRootTx(rootTxId)
         
         if @instance
-          puts "updateMgr.instance不为空,向router注册删除后的oldRootTxs"
+          puts "updateMgr.instance不为空,向router注册 删除后的oldRootTxs"
           instance.oldRootTxs = @updateCtx.algorithmOldRootTxs
           DelegateRouterClient.notify_router(@instance)
         end
@@ -424,7 +422,7 @@ module Dea
     end
     
     def ondemandSetupIsDone
-      puts "update_mgr : ondemandSetupIsDone"
+      puts "#{@keyGet} update_mgr : ondemandSetupIsDone"
       ondemandSyncMonitor = @compObj.ondemandSyncMonitor
       ondemandCondition = @compObj.ondemandCondition
       
@@ -449,15 +447,14 @@ module Dea
           
 
             notifyInterceptors(@bufferEventType)
-            #   here may be not the same one ? 不是，一个component对应一个helper
+            #    一个component对应一个helper
              
             @ondemandSetupHelper.ondemandIsDone()
-            #  ondemandSyncMonitor.notifyAll
-            # what should ruby code do to notify all that is waiting or ??? use condition wait
+             # what should ruby code do to notify all that is waiting or ??? use condition wait
             #这里，通知ondemandCondition？ 对的
             ondemandCondition.signal() 
             
-            puts "updateMgr: **** #{@compObj.identifier} ondemand setup is done , now notify all ondemandSyncMonitor***"
+            puts "#{@keyGet} updateMgr: **** #{@compObj.identifier} ondemand setup is done , now notify all ondemandSyncMonitor***"
             
             if @compObj.isTargetComp
               puts "update_mgr.ondemandIsDone : #{@compObj} is target component"
@@ -472,8 +469,10 @@ module Dea
    
     
     def remoteDynamicUpdateIsDone
+      
+      puts "#{@keyGet} call remoteDynamicUpdateIsDone"
       waitingRemoteCompUpdateDoneMonitor = @compObj.waitingRemoteCompUpdateDoneMonitor
-#                                                  @waitingRemoteCompUpdateMonitor @watingRemoteCompUpdateMonitor
+                                                   
       waitingCondition = @compObj.waitingCondition
       
       waitingRemoteCompUpdateDoneMonitor.synchronize do
@@ -491,16 +490,18 @@ module Dea
           puts "update_mgr: in remoteDynamicUpdateisDone :#{compIdentifier} remote update is done , CompStatus #{compStatus}, now notify all"
           waitingCondition.signal
           #waitingRemoteCompUpdateDoneMonitor.notifyAll
+        else
+          puts "#{@keyGet} in remoteDynamicUpdateIsDone , compStatus = #{compStatus}"
+          
         end
         
         
       end
       
-      
     end
     
     def ondemandSetting
-         #ondemandSetting
+        puts "update_mgr.ondemandSetting() \n" 
         ondemandSyncMonitor = @compObj.ondemandSyncMonitor
         ondemandSyncMonitor.synchronize do 
           

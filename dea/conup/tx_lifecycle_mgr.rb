@@ -28,19 +28,19 @@ module Dea
     attr_accessor :curCachedTxContext#这个是记录该构件是被其他构件调用的，还是直接被用户调用的
     
     attr_accessor :tx_invocation_hash
-    
+    attr_accessor :logger
     include MiniTest
     
     def notifyCache(invocationContext)
       
-      puts "notified to cahce #{invocationContext}"
+      @logger.debug "#{@keyGet}.notified to cahce #{invocationContext}"
       @InvocationContexts << invocationContext
       
     end
-    
-    
+        
      def initialize(comp) # comp is ComponentObject
       @compObject = comp
+      @logger = comp.logger
       @keyGet = comp.identifier + ":" + comp.componentVersionPort
       @txRegistry = Dea::TransactionRegistry.new
       @InvocationContexts = Array.new
@@ -60,10 +60,10 @@ module Dea
       #generate an id? 
       txContext = Dea::TxContext.new
       txContextCalViaCache = Dea::TxContext.new
-      puts "#{@keyGet}.txLifecycleMgr what?#{@InvocationContexts}"
+      @logger.debug "#{@keyGet}.txLifecycleMgr what?#{@InvocationContexts}"
       if @InvocationContexts.size < 1
         
-        puts "#{@keyGet}.tx_lifecycle_mgr: no cache context，当前事务是根事务"
+        @logger.debug "#{@keyGet}.tx_lifecycle_mgr: no cache context，当前事务是根事务"
         txContext.currentTx= id
         txContext.parentTx = id
         txContext.rootTx = id
@@ -79,14 +79,14 @@ module Dea
         txContextCalViaCache.hostComponent=@compObject.identifier 
         txContextCalViaCache.parentComponent= @compObject.identifier
         txContextCalViaCache.rootComponent= @compObject.identifier   
-        puts "#{@keyGet}.txLifecycleMgr: 当前事务时根事务，也存储txContext"
+        @logger.debug "#{@keyGet}.txLifecycleMgr: 当前事务时根事务，也存储txContext"
         @curCachedTxContext = txContextCalViaCache #如果没有人调用call，那么有cache？
       # invocationSequence should not be null
       #txContext.invocationSequence = ??? we don't need this
       else
-        puts "#{@keyGet}.tx_life_mgr : cache not nil，当前事务是子事务 "
-        puts @InvocationContexts
-        puts "--- ---- ---------- to be deleted --- --- --- --- "
+        @logger.debug "#{@keyGet}.tx_life_mgr : cache not nil，当前事务是子事务 "
+        @logger.debug @InvocationContexts
+        @logger.debug "--- ---- ---------- to be deleted --- --- --- --- "
         
         invocationContext = @InvocationContexts.shift
          
@@ -100,7 +100,7 @@ module Dea
         txContext.hostComponent=@compObject.identifier
         txContext.parentComponent= invocationContext.parentComp
         txContext.rootComponent= invocationContext.rootComp
-        puts "--------------------to be ended -----------------"
+        @logger.debug "--------------------to be ended -----------------"
         
         
         initLocalSubTx(@compObject.identifier,invocationContext.subTx,txContext)
@@ -135,7 +135,7 @@ module Dea
           @curCachedTxContext.hostComponent = hostComponent
           @curCachedTxContext.parentComponent = parentComponent
           
-          puts "#{@keyGet}.cached root tx id = #{rootTx}"
+          @logger.debug "#{@keyGet}.cached root tx id = #{rootTx}"
         elsif rootTx != nil && parentTx != nil && hostComponent != nil
           
           #当前事务是子事务
@@ -145,7 +145,7 @@ module Dea
           @curCachedTxContext.currentTx = currentTx
           
         else
-          puts "#{@keyGet}.dirty data"
+          @logger.debug "#{@keyGet}.dirty data"
         end
         
         
@@ -162,12 +162,12 @@ module Dea
         
         txContext2.invocationSequence=invocationSequence
         
-        puts "#{@keyGet}.tx2 = #{txContext2}"
+        @logger.debug "#{@keyGet}.tx2 = #{txContext2}"
         
 
       end
-      puts "#{@keyGet}..createID #{txContext}"
-      puts "-----------createID finished -------------"
+      @logger.debug "#{@keyGet}..createID #{txContext}"
+      @logger.debug "-----------createID finished -------------"
       @txRegistry.addTransactionContext(id,txContext)
       # @curTxContext = txContext
       
@@ -199,22 +199,22 @@ module Dea
     #called by who ??? 显然时被txDepMonitor调用啊
     def rootTxEnd(hostComp,port, rootid) #TODO need testing
       key  = hostComp + ":" + port.to_s
-       puts "#{@keyGet}.tx_lifecycle_mgr.rootTxEnd: hostComp = #{hostComp} , port = #{port}"
+       @logger.debug "#{@keyGet}.tx_lifecycle_mgr.rootTxEnd: hostComp = #{hostComp} , port = #{port}"
        compObject = Dea::NodeManager.instance.getComponentObject(key)
        compLifecycleMgr = Dea::NodeManager.instance.getCompLifecycleManager(key)
-       # puts "tx_lifecycle_mgr: compLifecycleMgr.nil? #{compLifecycleMgr == nil}"
+       # @logger.debug "tx_lifecycle_mgr: compLifecycleMgr.nil? #{compLifecycleMgr == nil}"
        updateMgr = Dea::NodeManager.instance.getUpdateManager(key)
        #   get update manager
        validToFreeSyncMonitor = compLifecycleMgr.compObj.validToFreeSyncMonitor
-       puts "#{@keyGet}.tx_lifecycle_mgr: txID= #{rootid} , hostComp: #{hostComp}, compStatus: #{compLifecycleMgr.compStatus}"
-       puts "#{@keyGet}.tx_life_cycle_mgr before valid.sync"
+       @logger.debug "#{@keyGet}.tx_lifecycle_mgr: txID= #{rootid} , hostComp: #{hostComp}, compStatus: #{compLifecycleMgr.compStatus}"
+       @logger.debug "#{@keyGet}.tx_life_cycle_mgr before valid.sync"
        validToFreeSyncMonitor.synchronize do
          #  testing
-         puts "#{@keyGet}.tx_lifecycle_mgr.rootTxEnd: call updateMgr.removeAlgorithmOldRootTx"
+         @logger.debug "#{@keyGet}.tx_lifecycle_mgr.rootTxEnd: call updateMgr.removeAlgorithmOldRootTx"
          updateMgr.removeAlgorithmOldRootTx(rootid)
        end
        
-       puts "#{@keyGet}.in txLifecycleMgr.rootTxEnd after valid.sync"
+       @logger.debug "#{@keyGet}.in txLifecycleMgr.rootTxEnd after valid.sync"
     end
     
     # TODO testing：：：needed to be considered ??? 这个反正代码我写了，但是暂时还没有测试到，
@@ -233,8 +233,8 @@ module Dea
         
          
     def initLocalSubTx(hostComp,fakeSubTx, txContextCache) # String , String , TransactionContext txCtxInCache
-        puts "#{@keyGet}.txLifecycleMgr.initLocalSubTx , fakeSubTx = #{fakeSubTx}"
-        puts "#{@keyGet}.tx_lifecycle_mgr : initLocalSubTx"
+        @logger.debug "#{@keyGet}.txLifecycleMgr.initLocalSubTx , fakeSubTx = #{fakeSubTx}"
+        @logger.debug "#{@keyGet}.tx_lifecycle_mgr : initLocalSubTx"
         key = @compObject.identifier + ":" + @compObject.componentVersionPort.to_s
         depMgr = Dea::NodeManager.instance.getDynamicDepManager(key)
          	 
@@ -254,7 +254,7 @@ module Dea
         txContext.currentTx=fakeSubTx
         txContext.hostComponent= hostComp
         
-	      puts "#{@keyGet}.tx_lifecycle mgr: initSub host.nil? #{txContext.hostComponent == nil     }"
+	      @logger.debug "#{@keyGet}.tx_lifecycle mgr: initSub host.nil? #{txContext.hostComponent == nil     }"
         txContext.eventType=TxEventType::TransactionStart
         
         txDep = Dea::TxDep.new(Set.new, Set.new)
@@ -267,18 +267,18 @@ module Dea
         txContext.rootTx=rootTx
         txContext.rootComponent= rootComp
         
-        puts "#{@keyGet}.before add fake , txRegistry = #{@txRegistry}"
+        @logger.debug "#{@keyGet}.before add fake , txRegistry = #{@txRegistry}"
         @txRegistry.addTransactionContext(fakeSubTx,txContext)
-        puts "#{@keyGet}. add fake, txRegistry = #{@txRegistry}"
+        @logger.debug "#{@keyGet}. add fake, txRegistry = #{@txRegistry}"
         
-        puts "#{@keyGet}.tx_lifecycle_mgr调用ddm.initLocalSubTx之前"
+        @logger.debug "#{@keyGet}.tx_lifecycle_mgr调用ddm.initLocalSubTx之前"
         return depMgr.initLocalSubTx(txContext)
         
     end
     
     
     def endLocalSubTx(hostComp, fakeSubTx) # String ,string   testing
-        puts "#{hostComp}.tx_lifecycle_mgr: endLocalSubTx"
+        @logger.debug "#{@keyGet}.tx_lifecycle_mgr: endLocalSubTx"
         #这个要在
         #notify(depMonitor)前做，否则TxEnd，直接将tx都删了.应该不是这个问题，因为存储的应该是一个fakeTx
         
@@ -298,26 +298,26 @@ module Dea
         ondemandMonitor = @compObject.ondemandSyncMonitor
         
         ondemandMonitor.synchronize do
-          puts "#{hostComp}.fakeSubTx = #{fakeSubTx}"
+          @logger.debug "#{@keyGet}.fakeSubTx = #{fakeSubTx}"
           fakeSubTxCtx = depMgr.getTxs()[fakeSubTx]
-          puts "#{hostComp}.depMgr.getTxs(): \n \t #{depMgr.getTxs()}\n"
-          puts "#{hostComp}.fakeSubTxCtx = #{fakeSubTxCtx}"
+          @logger.debug "#{@keyGet}.depMgr.getTxs(): \n \t #{depMgr.getTxs()}\n"
+          @logger.debug "#{@keyGet}.fakeSubTxCtx = #{fakeSubTxCtx}"
           if fakeSubTxCtx
             proxyRootTxId = fakeSubTxCtx.getProxyRootTxId(depMgr.scope)
             #这个计算的是call的rootTx
           end
-            puts "before delete #{fakeSubTx}"
-            puts depMgr.getTxs()
+            @logger.debug "#{@keyGet}.before delete #{fakeSubTx}"
+            @logger.debug depMgr.getTxs()
             depMgr.getTxs().delete(fakeSubTx)
-            puts "after delete #{fakeSubTx}"
-            puts depMgr.getTxs()
+            @logger.debug "#{@keyGet}.after delete #{fakeSubTx}"
+            @logger.debug depMgr.getTxs()
             
-            puts "before removeLocalDep \n\t txDepRegistry = #{txDepRegistry}"
+            @logger.debug "#{@keyGet}.before removeLocalDep \n\t txDepRegistry = #{txDepRegistry}"
             res = txDepRegistry.removeLocalDep(fakeSubTx) # removeLocal
             
-            puts "removeLocalDep res = #{res}"
+            @logger.debug "#{@keyGet}.removeLocalDep res = #{res}"
         end
-        puts "txLifecycleMgr: endLocalSubTx.proxyRootTxId #{proxyRootTxId}"
+        @logger.debug "#{@keyGet}.txLifecycleMgr: endLocalSubTx.proxyRootTxId #{proxyRootTxId}"
         proxyRootTxId
     end
     
@@ -353,12 +353,12 @@ module Dea
       
       invocationCtx = nil
       if @curCachedTxContext   == nil #invoked  tx是根事务@curCachedTxContext
-        puts #"当前invocationCtx == nil,现在应该不会出现这个情况，因为无论如何，我都在createID的时候，将curCachedTxContext赋值了"
+        @logger.debug #"当前invocationCtx == nil,现在应该不会出现这个情况，因为无论如何，我都在createID的时候，将curCachedTxContext赋值了"
         para = ""
         invocationCtx = InvocationContext.new(para,para,para,para,para,para,para)
       else
          
-        puts "cachedTx = #@curCachedTxContext"
+        @logger.debug "#{@keyGet}.cachedTx = #{@curCachedTxContext}"
         rootTx = @curCachedTxContext.rootTx 
         #这里的root，是cached.root, 如果请求是来自papa的，那么root = papa.root
         rootComp = @curCachedTxContext.rootComponent 
@@ -370,13 +370,13 @@ module Dea
         
        
         subTx = createFakeTxId()#创建一个fake id
-        puts "createInvocation. fakeSubTx = #{subTx}"
+        @logger.debug "#{@keyGet}.createInvocation. fakeSubTx = #{subTx}"
         subComp = serviceName
         
         invokeSequence = "" + hostComp + ":" + currentTx
         #因为这个invocationCtx是要发给sub的
         invocationCtx = InvocationContext.new(rootTx,rootComp,parentTx,parentComp,subTx,subComp,invokeSequence)  
-        puts "tx_life_mgr: start remote sub tx :   here，subTx is fakeTx \n \t invocationCtx = #{invocationCtx}"
+        @logger.debug "#{@keyGet}.tx_life_mgr: start remote sub tx :   here，subTx is fakeTx \n \t invocationCtx = #{invocationCtx}"
         startRemoteSubTx(invocationCtx)
          
       end
@@ -387,16 +387,16 @@ module Dea
     def startRemoteSubTx(invocationCtx) 
       # 在vc中，notifyStartRemoteSubTx方法被deprecated
       # 还是应该通知papa，startRemoteSubTx
-      puts "tx_lifecycle_mgr: startRemoteSubTx"
+      @logger.debug "#{@keyGet}.tx_lifecycle_mgr: startRemoteSubTx"
       #  need testing ， 这个方法只在createInvocation方法中被调用了
       hostComp = invocationCtx.parentComp # this not equals to current Component???
       
       #assert_equal(hostComp,@compObject.identifier)
        
       if hostComp == @compObject.identifier
-        puts "hostComp = identifier"
+        @logger.debug "#{@keyGet}.hostComp = identifier"
       else
-        puts "!!!error , in start RemoteSubTx"
+        @logger.debug "!!!error #{@keyGet}., in start RemoteSubTx"
                 
       end
             
@@ -416,13 +416,13 @@ module Dea
 #         need testing
       #assert_equal(hostComp,@compObject.identifier)
       if hostComp == @compObject.identifier
-        puts "equal"
+        @logger.debug "#{@keyGet}.equal"
       else
-        puts "!!!error!! in endRemoteSubTx"
+        @logger.debug "!!!error!! #{@keyGet}. in endRemoteSubTx"
       end
       key = @compObject.identifier + ":" + @compObject.componentVersionPort.to_s
       
-      puts "#{hostComp}.tx_lifecycle_mgr: endRemoteSubTx , key = #{key}" # 但是这个方法在traceInterceptor中被调用了
+      @logger.debug "#{@keyGet}.tx_lifecycle_mgr: endRemoteSubTx , key = #{key}" # 但是这个方法在traceInterceptor中被调用了
       depMgr = Dea::NodeManager.instance.getDynamicDepManager(key)
       compLifecycleMgr = Dea::NodeManager.instance.getCompLifecycleManager(key)
       
@@ -445,11 +445,6 @@ module Dea
     def removeTransactionContext(curTxID)
       @txRegistry.removeTransactionContext(curTxID)
     end
-    
-   
-    
-    
-    
     
   end
 end

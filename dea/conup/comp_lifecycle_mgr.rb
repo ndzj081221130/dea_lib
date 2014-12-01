@@ -14,17 +14,23 @@ module Dea
     attr_accessor :compObj # Object
     attr_accessor :compStatus
     attr_accessor :instance
-    
+    attr_accessor :logger
+    attr_accessor :keyGet
     def initialize(comp,instance) # comp is ComponentObject
       @compObj = comp
+      @logger = comp.logger
       @compStatus =  CompStatus::NORMAL
       @compStatus.extend(MonitorMixin)
       @instance = instance
       
       @keyGet = @compObj.identifier + ":" + @compObj.componentVersionPort.to_s
+      
+      @logger.debug "#{@keyGet} init compLifecycleMgr"
     end
      
-    
+    def logger=(logger)
+      @logger = logger
+    end 
     def stop(comp)
       return false
     end
@@ -39,7 +45,7 @@ module Dea
     
     def transitToNormal
       #synchronize(compstatus) #TODO 为什么这里要加锁？？？在哪里释放呢？？？
-      puts "compLifecycleMgr: transitToNormal"
+        puts "compLifecycleMgr: transitToNormal"
       # @compStatus.synchronize do # TODO 这里我没加锁，会不会有问题？？？
         puts "inside compStatus同步块内" # 为什么没进来？？？先将锁去掉
         if @compStatus == CompStatus::VALID || @compStatus == CompStatus::UPDATING
@@ -63,7 +69,7 @@ module Dea
       respond_to = nil
       message = Dea::Nats::Message.decode(instance.bootstrap.nats, subject, raw_data, respond_to)
       instance.bootstrap.handle_router_start(message)
-      # "{\"id\":\"b9bdc46ab4582344e17cc0fb9cb2fa33\",\"hosts\":[\"10.0.2.15\"]},respond_to = 
+      puts "comp_mgr notify router" 
     end
     
     def transitToOndemand
@@ -72,6 +78,7 @@ module Dea
       if @instance
         @instance.stats = CompStatus::ONDEMAND
         notify_router(@instance)
+        puts "comp_mgr notify router: ondemand" 
       end
     end
     
@@ -82,6 +89,7 @@ module Dea
        if @instance != nil
           @instance.stats = CompStatus::VALID
           notify_router(@instance)
+          puts "comp_mgr notify router :valid" 
       end
     end
     
@@ -96,7 +104,7 @@ module Dea
     
     def transitToFree
       @compStatus = CompStatus::FREE
-      #要，修改instance的状态的
+      #要修改instance的状态的
        if  @instance
           @instance.stats = CompStatus::FREE
           notify_router(@instance)
@@ -118,8 +126,6 @@ module Dea
     def isFree
       return @compStatus  == CompStatus::FREE 
     end
-    
-    
     
     
   end

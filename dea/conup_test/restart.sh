@@ -1,7 +1,5 @@
 
-cd /vagrant/test/helloworld-jsonrpc
-cf push
+cf restart auth 
 cf restart proc
-cf restart portal
-cf delete-force auth_new
+cf restart portal 
 

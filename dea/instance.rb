@@ -258,10 +258,10 @@ module Dea
       @stats = "NORMAL"
       @oldRootTxs = Set.new
       puts "{instance initialize} #{bootstrap.config.bias}"
-          port = Integer(bootstrap.config["collect_port"])
-          bias = bootstrap.config.bias
-          @new_port = port + bias
-          bootstrap.config.bias += 1
+      port = Integer(bootstrap.config["collect_port"])
+      bias = bootstrap.config.bias
+      @new_port = port + bias
+      bootstrap.config.bias += 1
           
       @attributes = attributes.dup
       @attributes["application_uris"] ||= []
@@ -573,7 +573,7 @@ module Dea
           puts "start instance succeed, start a collect_server here on #{@new_port}, bias = #{@config.bias} , "
           
       
-          @collect_server = Dea::CollectServer.new(@config["collect_ip"],
+          @collect_server = Dea::MessageServer.new(@config["collect_ip"],
                                  @new_port.to_s,
                                  @config,
                                  

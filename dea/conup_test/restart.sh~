@@ -1,5 +1,0 @@
-cf restart auth
-cf restart proc
-cf restart portal
-cf delete-force auth_new
-

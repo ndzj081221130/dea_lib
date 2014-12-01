@@ -29,7 +29,9 @@ module Dea
     end
     
     def manageDependence3(txContext, depMgr, compLifecycleMgr)
-      puts "vc: alg manageDependence3(),compLifecycleMgr nil? #{compLifecycleMgr == nil}"
+      
+      logger = compLifecycleMgr.logger
+      logger.debug "vc: alg manageDependence3(),compLifecycleMgr nil? #{compLifecycleMgr == nil}"
       
       #在ondemand过程中，这里没被调用？
       compStatus = compLifecycleMgr.compStatus #CompStatus
@@ -38,30 +40,31 @@ module Dea
       
       case compStatus
       when CompStatus::NORMAL
-        puts "#{compLifecycleMgr.compObj.identifier}.vc manageDependence3 , status = normal"
+        logger.debug "#{compLifecycleMgr.compObj.identifier}.vc manageDependence3 , status = normal"
         doNormal(txContext,depMgr,compLifecycleMgr, txDepRegistry)
       when CompStatus::VALID
-         puts "#{compLifecycleMgr.compObj.identifier}.vc manageDependence3 , status = valid"
+         logger.debug "#{compLifecycleMgr.compObj.identifier}.vc manageDependence3 , status = valid"
         doValid(txContext, depMgr, txDepRegistry)
       when CompStatus::ONDEMAND
-         puts "#{compLifecycleMgr.compObj.identifier}.vc manageDependence3 , status = ondemand"
+         logger.debug "#{compLifecycleMgr.compObj.identifier}.vc manageDependence3 , status = ondemand"
         doOndemand(txContext,compLifecycleMgr , depMgr, txDepRegistry)
       when CompStatus::UPDATING
-        puts "vc: manageDependence3 status=updating"
+        logger.debug "vc: manageDependence3 status=updating"
         doValid(txContext,depMgr,txDepRegistry)
       when CompStatus::FREE
-         puts "#{compLifecycleMgr.compObj.identifier}.vc manageDependence3 , status = free"
+         logger.debug "#{compLifecycleMgr.compObj.identifier}.vc manageDependence3 , status = free"
         doValid(txContext, depMgr,txDepRegistry)
       else
-        puts "vc: in else : comStatus: #{compStatus}"
+        logger.debug "vc: in else : comStatus: #{compStatus}"
        end 
     end
     
     def manageDependence4(operationType, params, depMgr, compLifecycleMgr)
                         #DepOperationType , Map<String,String>
-                        puts "vc. manageDependence4 params = #{params}"
+        logger = compLifecycleMgr.logger
+        logger.debug "vc. manageDependence4 params = #{params}"
         if compLifecycleMgr.compStatus == CompStatus::NORMAL
-          puts "vc.manageDependence4 , compstatus = normal"#怎么感觉好像停在这里了？
+          logger.debug "vc.manageDependence4 , compstatus = normal"#怎么感觉好像停在这里了？
           return true
         end      
         
@@ -73,33 +76,33 @@ module Dea
         
         case operationType
         when DepOperationType::NOTIFY_FUTURE_CREATE
-          puts "vc: doNotifyFutureCreate"
+          logger.debug "vc: doNotifyFutureCreate"
           manageDepResult = doNotifyFutureCreate(sourceComp,targetComp,rootTx,depMgr)
         when DepOperationType::NOTIFY_FUTURE_REMOVE
-          puts "vc: doNotifyFutureRemove"
+          logger.debug "vc: doNotifyFutureRemove"
           manageDepResult = doNotifyFutureRemove(sourceComp,targetComp,rootTx,depMgr)
         when DepOperationType::NOTIFY_START_REMOTE_SUB_TX
-          puts "vc: deprecated!"
+          logger.debug "vc: deprecated!"
         when DepOperationType::ACK_SUBTX_INIT
-          puts "vc: before process ACK_SUBTX_INIT"
+          logger.debug "vc: before process ACK_SUBTX_INIT"
           parentTxID = params["parentTx"]
           subTxID = params["subTx"]
           manageDepResult = doAckSubTxInit(sourceComp,targetComp,rootTx,parentTxID,
                                              subTxID,compLifecycleMgr,depMgr)
-          puts "vc: after manageDepResult = #{manageDepResult}"                                    
+          logger.debug "vc: after manageDepResult = #{manageDepResult}"                                    
         when DepOperationType::NOTIFY_PAST_CREATE
-          puts "vc : before process NOTIFY_PAST_CREATE"
+          logger.debug "vc : before process NOTIFY_PAST_CREATE"
           manageDepResult = doNotifyPastCreate(sourceComp,targetComp,rootTx,depMgr)
-          puts "vc : after process NOTIFY_PAST_CREATE"
+          logger.debug "vc : after process NOTIFY_PAST_CREATE"
           
         when DepOperationType::NOTIFY_PAST_REMOVE
-            puts "vc : notify_past_remove"
+            logger.debug "vc : notify_past_remove"
             manageDepResult = doNotifyPastRemove(sourceComp,targetComp,rootTx,depMgr)
         when DepOperationType::NOTIFY_REMOTE_UPDATE_DONE
-            puts "vc : notify_remove_update_done"
+            logger.debug "vc : notify_remove_update_done"
             manageDepResult = doNotifyRemoteUpdateDone(sourceComp,targetComp,depMgr)    
         else
-           puts "vc: in case else"      
+           logger.debug "vc: in case else"      
         end 
         
         return manageDepResult
@@ -107,7 +110,7 @@ module Dea
     
     def doNormal(txCtx,depMgr,compLifecycleMgr,txDepRegistry)
        # TransactionContext
-       
+       logger = compLifecycleMgr.logger
        if txCtx.eventType == TxEventType::TransactionEnd
           hostComp = txCtx.hostComponent
           ondemandSyncMonitor = compLifecycleMgr.compObj.ondemandSyncMonitor
@@ -118,19 +121,19 @@ module Dea
             rootTx = txCtx.getProxyRootTxId(depMgr.scope)
             if compLifecycleMgr.compStatus == CompStatus::NORMAL
               size = depMgr.getTxs().size
-              puts "vc : depMgr.getTxs().size=#{size}"
+              logger.debug "vc : depMgr.getTxs().size=#{size}"
               
               depMgr.getTxs().delete(txCtx.currentTx)
               depMgr.txLifecycleMgr.rootTxEnd(hostComp,port, rootTx) 
               
-              puts "vc : remove tx from TxRegistry and TxDepMonitor , local tx = #{txCtx.currentTx} "
+              logger.debug "vc : remove tx from TxRegistry and TxDepMonitor , local tx = #{txCtx.currentTx} "
               
-              puts "vc : rootTx: #{rootTx}"
+              logger.debug "vc : rootTx: #{rootTx}"
               
               return
             else
               if compLifecycleMgr.compStatus == CompStatus::ONDEMAND
-                puts "vc : ondemandSyncMonitor.wait()"
+                logger.debug "vc : ondemandSyncMonitor.wait()"
                 #  TODO need testing here we call ondemandSyncMonitor.wait()
                 ondemandCondition.wait()
               end
@@ -145,7 +148,8 @@ module Dea
     
     def doValid(txContext,depMgr, txDepRegistry)
       # TransactionContext
-      puts "vc.doValid #{txContext.hostComponent}"
+      logger = depMgr.logger
+      logger.debug "vc.doValid #{txContext.hostComponent}"
       txEventType = txContext.eventType #String
       
       scope = depMgr.scope
@@ -153,13 +157,13 @@ module Dea
       rootTx = txContext.getProxyRootTxId(scope)
       
       if(rootTx == nil)
-        puts "vc: InvocationSequence"
-        puts txContext.invocationSequence
+        logger.debug "vc: InvocationSequence"
+        logger.debug txContext.invocationSequence
         
-        puts "vc : hostComp:"
-        puts txContext.hostComponent
-        puts "vc : real root: "
-        puts txContext.rootTx
+        logger.debug "vc : hostComp:"
+        logger.debug txContext.hostComponent
+        logger.debug "vc : real root: "
+        logger.debug txContext.rootTx
         
       end
       
@@ -175,26 +179,26 @@ module Dea
         lfe = Dependence.new(FUTURE_DEP,rootTx,hostComp, hostComp,nil,nil)
         
         if !inDepRegistry.contain(lfe)
-          puts "vc.inDepRegistry.add future"
+          logger.debug "vc.inDepRegistry.add future"
           inDepRegistry.addDependence(lfe)
-          puts
+          logger.debug
         end
         
         if !outDepRegistry.contain(lfe)
-          puts "vc.outDepRegistry.add future"
+          logger.debug "vc.outDepRegistry.add future"
           outDepRegistry.addDependence(lfe)
         end
         
          lpe = Dependence.new(PAST_DEP,rootTx,hostComp,hostComp,nil,nil)
         
         if  !inDepRegistry.contain(lpe)# local past edge
-          puts "vc.inDepRegistry.add past"
+          logger.debug "vc.inDepRegistry.add past"
           inDepRegistry.addDependence(lpe)
           
         end
         
         if !outDepRegistry.contain(lpe)
-          puts "vc.outDepRegistry.add past"
+          logger.debug "vc.outDepRegistry.add past"
           outDepRegistry.addDependence(lpe)
         end
         
@@ -210,14 +214,14 @@ module Dea
                              txContext.parentComponent,rootTx,DepOperationType::ACK_SUBTX_INIT,
                              txContext.parentTx,txContext.currentTx)
                              
-          #   notify need tesing : DepNotifyService.synPost()
+          #    
           #
-          puts "#{txContext.hostComponent}.vc: notify parent ,  that a new sub-tx start"
+          logger.debug "#{txContext.hostComponent}.vc: notify parent ,  that a new sub-tx start"
           depNotify(hostComp,txContext.parentComponent,payload)
                              
         end
       elsif txEventType == TxEventType::DependencesChanged
-        puts "#{txContext.hostComponent}.vc.doValid type = DependenceChanged"
+        logger.debug "#{txContext.hostComponent}.vc.doValid type = DependenceChanged"
         futureDepsInODR = outDepRegistry.getDependencesViaType(FUTURE_DEP)
         # futureDepsInOutDepRegistry
         futureDepSameRoot = Set.new # concurrentSkipListSet<Dependence>
@@ -241,54 +245,54 @@ module Dea
             end
             }
            
-           puts "#{txContext.hostComponent}.vc.doValid hasFutureInDep = #{hasFutureInDep} "
+           logger.debug "#{txContext.hostComponent}.vc.doValid hasFutureInDep = #{hasFutureInDep} "
            # during tx running , find some components will never be used anymore
            # if current component do not have any other future in deps , 
            # delete  the future deps from current to sub components 
             # hasFutureInDeps
             futureDepSameRoot.each{|dep|
-              puts "futureDepSameRoot, dep = #{dep}"
+              logger.debug "futureDepSameRoot, dep = #{dep}"
               if !hasFutureInDep && !futureComponents.include?(dep.targetCompObjIdentifier) && !dep.targetCompObjIdentifier == hostComp
                   outDepRegistry.removeDependence(dep.type , dep.rootTx,dep.srcCompObjIdentifier ,dep.targetCompObjIdentifier )    
                   
                   payload = ConsistencyPayloadCreator.createPayload4(hostComp,dep.targetCompObjIdentifier,rootTx,DepOperationType::NOTIFY_FUTURE_REMOVE)
                   
-                  puts "payload  #{payload}!!! dep changed , notify #{dep.targetCompObjIdentifier}"
+                  logger.debug "payload  #{payload}!!! dep changed , notify #{dep.targetCompObjIdentifier}"
                   ## here notify testing TODO
                   depNotify(hostComp,dep.targetCompObjIdentifier,payload)
                       
                else
-                  puts "vc.doValid dependencesChanged , in else" #TODO 测试，为啥hasFuture是true的？
-                  puts "futureComps = #{futureComponents}"
-                  puts "dep.target = #{dep.targetCompObjIdentifier}"
-                  puts "hostComp = #{hostComp}"  
+                  logger.debug "vc.doValid dependencesChanged , in else" #TODO 测试，为啥hasFuture是true的？
+                  logger.debug "futureComps = #{futureComponents}"
+                  logger.debug "dep.target = #{dep.targetCompObjIdentifier}"
+                  logger.debug "hostComp = #{hostComp}"  
               end
                 
-                puts
+                logger.debug
               }
               
       elsif txEventType == TxEventType::TransactionEnd
             # if current Tx is not root , need to notify parent sub_tx_end
             
             if   currentTx != rootTx
-              puts "#{txContext.hostComponent}.vc: handle TxEnd , current Tx is not root , do nothing "
-              puts "\t currentTx = #{currentTx}"
-              puts  "\t rootTx = #{rootTx}"
+              logger.debug "#{txContext.hostComponent}.vc: handle TxEnd , current Tx is not root , do nothing "
+              logger.debug "\t currentTx = #{currentTx}"
+              logger.debug  "\t rootTx = #{rootTx}"
             else
               # current tx is root tx 如果是根事务，inDepResigtry删除future边和past边
-              puts "inDepRegistry remove Future dep"
+              logger.debug "inDepRegistry remove Future dep"
               inDepRegistry.removeDependence(FUTURE_DEP,rootTx,hostComp , hostComp)
-              puts "inDepRegistry remove past dep"
+              logger.debug "inDepRegistry remove past dep"
               inDepRegistry.removeDependence(PAST_DEP,rootTx,hostComp,hostComp)
               # outDepRegistry删除future边和past边
-              puts "outDepRegistry remove Future dep \t"
+              logger.debug "outDepRegistry remove Future dep \t"
               outDepRegistry.removeDependence(FUTURE_DEP,rootTx,hostComp,hostComp)
-              puts "outDepRegistry remove past dep \t"
+              logger.debug "outDepRegistry remove past dep \t"
               outDepRegistry.removeDependence(PAST_DEP,rootTx,hostComp,hostComp)
               
               removeAllEdges(hostComp,rootTx,depMgr)
               
-              puts "vc.doValid: handle TxEnd msg : rootTx End hostComp = #{hostComp} , rootTx = #{rootTx}" 
+              logger.debug "vc.doValid: handle TxEnd msg : rootTx End hostComp = #{hostComp} , rootTx = #{rootTx}" 
               
               @isSetupDone.delete currentTx
             end
@@ -321,10 +325,10 @@ module Dea
                      outDepRegistry.addDependence(dep)
                      
                      payload = ConsistencyPayloadCreator.createPayload4(hostComp,targetComp,currentTx,DepOperationType::NOTIFY_FUTURE_CREATE)
-                     puts payload
+                     logger.debug payload
                      #TODO
                      #Notify testing
-                     puts "vc: FirstRequestService , notify target, #{targetComp}"
+                     logger.debug "vc: FirstRequestService , notify target, #{targetComp}"
                      depNotify(hostComp,targetComp,payload)
           
                  }
@@ -337,14 +341,15 @@ module Dea
     
     
     def doOndemand(txContext,compLifecycleMgr,depMgr,txDepRegistry)
-      puts "vc: doOndemand!!!"
+      logger = compLifecycleMgr.logger
+      logger.debug "vc: doOndemand!!!"
       ondemandSyncMonitor = compLifecycleMgr.compObj.ondemandSyncMonitor
       
       ondemandSyncMonitor.synchronize do 
           if compLifecycleMgr.compStatus == CompStatus::ONDEMAND
             #TODO
             #ondemandSyncMonitor.wait()???
-            puts "--------------ondemandSyncMonitor.wait()"
+            logger.debug "--------------ondemandSyncMonitor.wait()"
           end
       end
       
@@ -353,7 +358,8 @@ module Dea
     
     
     def doNotifyFutureCreate(sourceComp,targetComp,rootTx,depMgr)
-      puts "vc.doNotifyFutureCreate #{sourceComp} ---> #{targetComp} rootTX: #{rootTx}"
+      logger = depMgr.logger
+      logger.debug "vc.doNotifyFutureCreate #{sourceComp} ---> #{targetComp} rootTX: #{rootTx}"
       
       inDepRegistry = depMgr.inDepRegitry
       outDepRegistry = depMgr.outDepRegistry
@@ -389,7 +395,8 @@ module Dea
     end
     
     def doNotifyPastRemove(sourceComp,targetComp,rootTx,depMgr)
-      puts "vc.doNotifyPastRemove #{sourceComp} ---> #{targetComp} rootTx: #{rootTx}"
+      logger = depMgr.logger
+      logger.debug "vc.doNotifyPastRemove #{sourceComp} ---> #{targetComp} rootTx: #{rootTx}"
       
       inDepRegistry = depMgr.inDepRegistry
       # 这里调用check for freeness
@@ -400,16 +407,17 @@ module Dea
     end
     
     def doNotifyPastCreate(sourceComp,targetComp,rootTx,depMgr)
-      puts "vc.doNotifyPastCreate: #{sourceComp} ---> #{targetComp} rootTx #{rootTx}"
+      logger = depMgr.logger
+      logger.debug "vc.doNotifyPastCreate: #{sourceComp} ---> #{targetComp} rootTx #{rootTx}"
       id = depMgr.compLifecycleMgr.compObj.identifier
       port = depMgr.compLifecycleMgr.compObj.componentVersionPort
       keyGet = id +":" + port #compLifecycleMgr
       #assert_equal(sourceComp, id)
       
       if sourceComp == id
-        puts "doNotify: src == id"
+        logger.debug "doNotify: src == id"
       else
-        puts "!!!Error not equal : src!=id #{src} , id = #{id}"
+        logger.debug "!!!Error not equal : src!=id #{sourceComp} , id = #{id}"
       end
       inDepRegistry = depMgr.inDepRegistry
       
@@ -424,7 +432,7 @@ module Dea
       txs.each{|key, tc|
         
         if tc.getProxyRootTxId(depMgr.scope) == rootTx && tc.eventType!=TxEventType::TransactionEnd && !tc.isFakeTx
-          puts "true"
+          logger.debug "true"
           flag = true
           break
         end
@@ -434,14 +442,14 @@ module Dea
         outDepRegistry = depMgr.outDepRegistry
         
         if !flag
-              puts "vc.delete future/past on #{targetComp}, tx: #{rootTx}"
-              puts "inDepRegistry.remove future dep , "
+              logger.debug "vc.delete future/past on #{targetComp}, tx: #{rootTx}"
+              logger.debug "inDepRegistry.remove future dep , "
               inDepRegistry.removeDependence(FUTURE_DEP,rootTx,targetComp , targetComp)
-               puts "inDepRegistry.remove past dep , \t "
+               logger.debug "inDepRegistry.remove past dep , \t "
               inDepRegistry.removeDependence(PAST_DEP,rootTx,targetComp,targetComp)
-               puts "outDepRegistry.remove future dep , "
+               logger.debug "outDepRegistry.remove future dep , "
               outDepRegistry.removeDependence(FUTURE_DEP,rootTx,targetComp,targetComp)
-               puts "outDepRegistry.remove past dep , \t"
+               logger.debug "outDepRegistry.remove past dep , \t"
               outDepRegistry.removeDependence(PAST_DEP,rootTx,targetComp,targetComp)
         end
         
@@ -458,21 +466,22 @@ module Dea
     
     
     def doNotifySubTxEnd(sourceComp,targetComp,rootTx,parentTx,subTx,compLifecycleMgr,depMgr)
+      logger = depMgr.logger
       name = compLifecycleMgr.compObj.identifier
-      puts "#{name}.vc.doNotifySubTxEnd"
-      puts "#{sourceComp} ---> #{targetComp} subTx: #{subTx} \n \t rootTx: #{rootTx} \n \t parentTx = #{parentTx}"
+      logger.debug "#{name}.vc.doNotifySubTxEnd"
+      logger.debug "#{sourceComp} ---> #{targetComp} subTx: #{subTx} \n \t rootTx: #{rootTx} \n \t parentTx = #{parentTx}"
       
       ondemandMonitor = compLifecycleMgr.compObj.ondemandSyncMonitor
       
       ondemandMonitor.synchronize do 
         
         allTxs = depMgr.getTxs()#Map<String,TxContext> 这里为空的原因？应该是depMonitor删了什么东西吧？
-        puts "#{name}.vc.doNotifySubTxEnd.allTxs = #{allTxs}"
+        logger.debug "#{name}.vc.doNotifySubTxEnd.allTxs = #{allTxs}"
         txCtx = allTxs[parentTx]
-        # puts ""
+        # logger.debug ""
         #这里断言，txCtx不为空
         if txCtx == nil
-          puts "!!!#{name}.vc.doNotifySubTxEnd, should not be nil!"
+          logger.debug "!!!#{name}.vc.doNotifySubTxEnd, should not be nil!"
           return false
         end
         subTxHostComps = txCtx.subTxHostComps
@@ -496,8 +505,8 @@ module Dea
         
         outDepRegistry.addDependence(dep)
         payload = ConsistencyPayloadCreator.createPayload4(targetComp,sourceComp,rootTx,DepOperationType::NOTIFY_PAST_CREATE)
-        puts "#{name}.vc.payload : #{payload}"
-        puts "#{name}.vc: doNotifySubTxEnd, notify sourceComp = #{sourceComp}"
+        logger.debug "#{name}.vc.payload : #{payload}"
+        logger.debug "#{name}.vc: doNotifySubTxEnd, notify sourceComp = #{sourceComp}"
         depNotify(targetComp,sourceComp,payload)
         #  need testing
          
@@ -507,9 +516,10 @@ module Dea
     
     # be notified that a sub tx being initiated
     def doAckSubTxInit(sourceComp,targetComp,rootTx,parentTxID,subTxID,compLifecycleMgr,depMgr)
+      logger = depMgr.logger
       name = compLifecycleMgr.compObj.identifier
-      puts "#{name}.vc.doAckSubTxInit "
-      puts "#{sourceComp} --> #{targetComp} subTx: #{subTxID} rootTx: #{rootTx}"
+      logger.debug "#{name}.vc.doAckSubTxInit "
+      logger.debug "#{sourceComp} --> #{targetComp} subTx: #{subTxID} rootTx: #{rootTx}"
       
       ondemandSyncMonitor = compLifecycleMgr.compObj.ondemandSyncMonitor
       
@@ -517,10 +527,10 @@ module Dea
       ondemandSyncMonitor.synchronize do 
         
         allTxs = depMgr.getTxs() #Map<String,TxContext>
-        puts "#{name}.vc.doAckSubTxInit allTxs = #{allTxs}"
+        logger.debug "#{name}.vc.doAckSubTxInit allTxs = #{allTxs}"
         txCtx = allTxs[parentTxID]
         if txCtx == nil
-          puts "!!!#{name}.vc.doAckSubTxInit txCtx = allTxs[parentTxId] is nil"
+          logger.debug "!!!#{name}.vc.doAckSubTxInit txCtx = allTxs[parentTxId] is nil"
           return false
         end
         subTxHostComps = txCtx.subTxHostComps # MAp<String,>
@@ -532,7 +542,7 @@ module Dea
         if compLifecycleMgr == CompStatus::NORMAL
           return true
         end
-        puts "#{name}.vc.doAckSubTxInit , before call removeFutureEdges5"
+        logger.debug "#{name}.vc.doAckSubTxInit , before call removeFutureEdges5"
         return removeFutureEdges5(targetComp,rootTx,parentTxID,subTxID,depMgr)
         
         
@@ -546,14 +556,15 @@ module Dea
     #try to remove src --> target future dep
     
     def doNotifyFutureRemove(sourceComp,targetComp,rootTx,depMgr)
+      logger = depMgr.logger
       hostComp = depMgr.compObj.identifier
       port = depMgr.compObj.componentVersionPort
       key = hostComp + ":" + port.to_s
-      puts "#{hostComp}.vc.doNotifyFutureRemove #{sourceComp} --> #{targetComp}   rootTx: #{rootTx}"
+      logger.debug "#{hostComp}.vc.doNotifyFutureRemove #{sourceComp} --> #{targetComp}   rootTx: #{rootTx}"
       
       inDepRegistry = depMgr.inDepRegistry
       inDepRegistry.removeDependence(FUTURE_DEP, rootTx, sourceComp, targetComp)
-      puts "#{hostComp} after removeDep(Future) , inDepRegistry = #{inDepRegistry}"
+      logger.debug "#{hostComp} after removeDep(Future) , inDepRegistry = #{inDepRegistry}"
       
       txDepRegistry = NodeManager.instance.getTxDepMonitor(key).txDepRegistry
       
@@ -562,40 +573,41 @@ module Dea
     end
     
     def depNotify(hostComp,comp,payloadSend)
-         puts "#{hostComp}.vc : called dep notify service sync client"
+         #logger.debug "#{hostComp}.vc : called dep notify service sync client"
          comm =  @xmlUtil.getAllComponentsComm
-         # puts "comm"
+         # logger.debug "comm"
          ip =  "192.168.12.34"
          port =  comm[comp]
          
-         puts "#{ip},#{port}"
+         #logger.debug "#{ip},#{port}"
   #                
          Dea::SynCommClient.sendMsg(ip,port,hostComp,comp,
                                           "CONSISTENCY",MsgType::DEPENDENCE_MSG,payloadSend,"Sync")
     end
     
     def depNotifyAsync(hostComp,comp,payloadSend)
-         puts "#{hostComp}.vc : called dep notify service async "
+         #logger.debug "#{hostComp}.vc : called dep notify service async "
          comm =  @xmlUtil.getAllComponentsComm
-         # puts "comm"
+         
          ip =  "192.168.12.34"
          port =  comm[comp]
          
-         puts "#{ip},#{port}"
+         #logger.debug "#{ip},#{port}"
   #               
          Dea::ASynCommClient.sendMsg(ip,port,hostComp,comp,
                                           "CONSISTENCY",MsgType::DEPENDENCE_MSG,payloadSend,"Async")
     end
     
      def doNotifyRemoteUpdateDone(sourceComp,hostComp,depMgr)
-       puts "vc: #{hostComp} received notfiyRemoteUpdateDone from #{sourceComp}" 
+       logger = depMgr.logger
+       logger.debug "vc: #{hostComp} received notfiyRemoteUpdateDone from #{sourceComp}" 
        #assert_equal(hostComp,depMgr.compLifecycleMgr.compObj.identifier)
-       
+       puts "vc: #{hostComp} received notfiyRemoteUpdateDone from #{sourceComp}" 
        if hostComp == depMgr.compLifecycleMgr.compObj.identifier
-         puts "equal hostComp & depMgr....id"
+         logger.debug "equal hostComp & depMgr....id"
        else
          
-         puts "!!!Error not equal"
+         logger.debug "!!!Error hostComp and ddm.compObj.id not equal"
        end
        key = depMgr.compLifecycleMgr.compObj.identifier + ":" + depMgr.compLifecycleMgr.compObj.componentVersionPort.to_s
        scope = depMgr.scope
@@ -612,7 +624,7 @@ module Dea
          #  notify  testing
           payload = ConsistencyPayloadCreator.createRemoteUpDateIsDonePayload(hostComp,comp,DepOperationType::NOTIFY_REMOTE_UPDATE_DONE)
           depNotifyAsync(hostComp,comp,payload)
-         
+          puts "notify parentComp = #{comp}"
          # depNotifyService.asynPost(hostComp,comp, "Consistency","Dependence_msg",payload)
          }
          
@@ -628,19 +640,22 @@ module Dea
          return true
       end
     
+    
+    
+    
     #try to remove future dep when receive ACK_SUB_INIT
       def removeFutureEdges5(currentComp,rootTx,currentTxID,subTxID,depMgr)
         #assert_equal(currentComp,depMgr.compLifecycleMgr.compObj.identifier )
-        
+        logger = depMgr.logger
         if currentComp == depMgr.compLifecycleMgr.compObj.identifier
-          puts "cur == dep...id"
+          logger.debug "cur == dep...id"
         else
           outs "removeFutureEdges , not equal current& depMgr...id"
         end
         port = depMgr.compLifecycleMgr.compObj.componentVersionPort
         
         key = currentComp +":" + port
-        puts "vc.removeFutureEdges5, curComp = #{currentComp} , "
+        logger.debug "vc.removeFutureEdges5, curComp = #{currentComp} , "
         outDepRegistry = depMgr.outDepRegistry
         inDepRegistry = depMgr.inDepRegistry
         
@@ -648,13 +663,13 @@ module Dea
         outFutureOneRoot = Set.new # HashSet<Dependence>
         
         outFutureDeps.each{|dep|
-          puts "outFutureDeps : dep #{dep}"
+          logger.debug "outFutureDeps : dep #{dep}"
           if dep.rootTx == rootTx && dep.srcCompObjIdentifier != dep.targetCompObjIdentifier
-            puts "if , add one out future #{dep}"
+            logger.debug "if , add one out future #{dep}"
             outFutureOneRoot << dep
           else
-            puts "else , rootTx = #{rootTx} , dep.rootTx = #{dep.rootTx} , "
-            puts "src = #{dep.srcCompObjIdentifier},target = #{dep.targetCompObjIdentifier}"  
+            logger.debug "else , rootTx = #{rootTx} , dep.rootTx = #{dep.rootTx} , "
+            logger.debug "src = #{dep.srcCompObjIdentifier},target = #{dep.targetCompObjIdentifier}"  
           end
           
           }
@@ -663,9 +678,9 @@ module Dea
         futureDeps = inDepRegistry.getDependencesViaType(FUTURE_DEP)
         
         futureDeps.each{|dep|
-          puts "vc.remove5 futureDep : dep= #{dep}"
+          logger.debug "vc.remove5 futureDep : dep= #{dep}"
           if dep.rootTx == rootTx && dep.srcCompObjIdentifier!= dep.targetCompObjIdentifier
-            puts "vc.remove5: inFutureFlag change to true"
+            logger.debug "vc.remove5: inFutureFlag change to true"
             inFutureFlag = true
             break
           end
@@ -673,23 +688,23 @@ module Dea
         
         if !inFutureFlag
           txDepMonitor = Dea::NodeManager.instance.getTxDepMonitor(key)
-          puts "in future flag == false"
+          logger.debug "in future flag == false"
           outFutureOneRoot.each{|dep|
-            puts "outFutureOneRoot : dep = #{dep}"
+            logger.debug "outFutureOneRoot : dep = #{dep}"
             isLastUse = txDepMonitor.isLastUse(currentTxID, dep.targetCompObjIdentifier, currentComp)
             if isLastUse
                 payload = Dea::ConsistencyPayloadCreator.createPayload4(dep.srcCompObjIdentifier, dep.targetCompObjIdentifier, dep.rootTx,DepOperationType::NOTIFY_FUTURE_REMOVE)
                 #  notify testing  
-                puts "#{currentComp}.vc: notify  future_remove \n\t payload = #{payload}"
+                logger.debug "#{currentComp}.vc: notify  future_remove \n\t payload = #{payload}"
                 depNotify(dep.srcCompObjIdentifier,dep.targetCompObjIdentifier,payload)
             else
-              puts "isLastUse false"  
+              logger.debug "isLastUse false"  
             end
             }
         else
-          puts "inFutureFlag = true"    
+          logger.debug "inFutureFlag = true"    
         end   
-        puts "vc.remove5 inFutureFlag = #{inFutureFlag}"
+        logger.debug "vc.remove5 inFutureFlag = #{inFutureFlag}"
         return true
         
       end
@@ -699,7 +714,8 @@ module Dea
       # according to the condition to decide whether need to remove the future dep
       
       def removeFutureEdges4(currentComp,rootTx,depMgr,txDepRegistry)
-        puts "#{currentComp}.vc.removeFutureEdge4 "
+        logger = depMgr.logger
+        logger.debug "#{currentComp}.vc.removeFutureEdge4 "
         outDepRegistry = depMgr.outDepRegistry
         inDepRegistry = depMgr.inDepRegistry
         
@@ -754,7 +770,7 @@ module Dea
              }
              
              if willNotUseFlag
-               puts "#{currentComp}.vc.removeFutureEdges4 will not use in future"
+               logger.debug "#{currentComp}.vc.removeFutureEdges4 will not use in future"
                scope = depMgr.scope
                
                if scope!=nil && !scope.subComponents[dep.srcCompObjIdentifier].include?(dep.targetCompObjIdentifier)
@@ -762,14 +778,14 @@ module Dea
                end
                
                outDepRegistry.removeDependenceViaDep(dep)
-               puts "after removeDep,outDepRegistry = #{outDepRegistry}"
+               logger.debug "after removeDep,outDepRegistry = #{outDepRegistry}"
                payload = ConsistencyPayloadCreator.createPayload4(dep.srcCompObjIdentifier, dep.targetCompObjIdentifier, dep.rootTx,DepOperationType::NOTIFY_FUTURE_REMOVE)
                #  notify testing
-               puts "#{currentComp}.vc.removeFutureEdges4 payload #{payload}"#
+               logger.debug "#{currentComp}.vc.removeFutureEdges4 payload #{payload}"#
                #syncPost(dep.srcCompObjIdentifier, dep.targetCompObjIdentifier , "algorithm_type" , "dependence_msg", payload)
                depNotify(dep.srcCompObjIdentifier,dep.targetCompObjIdentifier,payload)
              else
-               puts "#{currentComp}.removeFutureEdges4 , willNotUseFlag = false"
+               logger.debug "#{currentComp}.removeFutureEdges4 , willNotUseFlag = false"
              end
          end
          
@@ -779,29 +795,30 @@ module Dea
       end
       
       def removeAllEdges(hostComp,rootTx, depMgr)
+        logger = depMgr.logger
         port = depMgr.compLifecycleMgr.compObj.componentVersionPort
         key1 = hostComp + ":" + port.to_s
-        puts "vc.removeAllEdges , rootTx = #{rootTx} ,  key = #{key1}"
+        logger.debug "vc.removeAllEdges , rootTx = #{rootTx} ,  key = #{key1}"
         rtOutDeps = depMgr.getRuntimeDeps()
         
         rtOutDeps.each{|dep|
-          puts "#{hostComp}.vc.removeAllEdges dep = #{dep}"
+          logger.debug "#{hostComp}.vc.removeAllEdges dep = #{dep}"
           if dep.rootTx == rootTx && dep.type == FUTURE_DEP && dep.srcCompObjIdentifier != dep.targetCompObjIdentifier
-            puts "vc.removeAllEdges rootTx = #{rootTx} , type = future ,src!=target, notify_future_remove"
+            logger.debug "vc.removeAllEdges rootTx = #{rootTx} , type = future ,src!=target, notify_future_remove"
             payload = Dea::ConsistencyPayloadCreator.createPayload4(hostComp,dep.targetCompObjIdentifier, rootTx,DepOperationType::NOTIFY_FUTURE_REMOVE)
               #  notify testing
               #synPost(hostComp, dep.targetCompObjIdentifier, "consistency","dependency_msg",payload)
               depNotify(hostComp,dep.targetCompObjIdentifier,payload)
           elsif dep.rootTx == rootTx && dep.type == PAST_DEP && dep.srcCompObjIdentifier != dep.targetCompObjIdentifier
-            puts "vc.removeAllEdges , rootTx = #{rootTx} , type =past,src!=target , notify_past_remove"
+            logger.debug "vc.removeAllEdges , rootTx = #{rootTx} , type =past,src!=target , notify_past_remove"
             payload = Dea::ConsistencyPayloadCreator.createPayload4(hostComp,dep.targetCompObjIdentifier, rootTx,DepOperationType::NOTIFY_PAST_REMOVE)
               #  notify testing
               depNotify(hostComp,dep.targetCompObjIdentifier,payload)
               
           else
-              puts "vc.removeAllEdges else, dep=  #{dep}" #这里应该说明，rootTx ！= dep.rootTx
+              logger.debug "vc.removeAllEdges else, dep=  #{dep}" #这里应该说明，rootTx ！= dep.rootTx
           end
-          puts
+          logger.debug
           if dep.rootTx == rootTx
             rtOutDeps.delete(dep)
           end
@@ -830,7 +847,7 @@ module Dea
                  depMgr.getTxs().each{|k,inCtx|
                    
                    if inCtx.getProxyRootTxId(depMgr.scope) == rootTx
-                     # puts "It is strange!!!"
+                     # logger.debug "It is strange!!!"
                      #  tai qi pa l ...
                      depMgr.getTxs().delete(k)
                    end
@@ -841,7 +858,7 @@ module Dea
             
             }  
             
-          puts "#{hostComp}.vc.removeAllEdges, before rootTx end"
+          logger.debug "#{hostComp}.vc.removeAllEdges, before rootTx end"
           depMgr.getTxLifecycleMgr().rootTxEnd(hostComp,port,rootTx)
           
           return true  
@@ -884,7 +901,7 @@ module Dea
            
             }
             
-          puts "vc.getOldVersionRootTxs: inDepsStr = #{inDepsStr}"  
+          #logger.debug "vc.getOldVersionRootTxs: inDepsStr = #{inDepsStr}"  
           
           outDepsStr=""
           
@@ -893,16 +910,16 @@ module Dea
             
             }
             
-          puts "vc.getOldVersionRootTxs: oldRootTX = #{outDepsStr}"
+        #  logger.debug "vc.getOldVersionRootTxs: oldRootTX = #{outDepsStr}"
           
-          # puts "in consistencey algorithm (allInDeps) #{allInDeps}"
+          # logger.debug "in consistencey algorithm (allInDeps) #{allInDeps}"
           
           oldRootTx   
       end
       
       
       def readyForUpdate(compIdentifier,depMgr) #TODO to be test
-        
+        logger = depMgr.logger
         rtInDeps = depMgr.getRuntimeInDeps()
         
         # 
@@ -913,7 +930,7 @@ module Dea
          
         allRootTxs.each{|dep|
           
-          puts "Algorithn inReady? #{dep}"
+          logger.debug "Algorithn inReady? #{dep}"
           }
           
           
@@ -933,7 +950,7 @@ module Dea
             }
             
             if pastFlag && futureFlag
-              puts "deps: #{deps}"
+              logger.debug "deps: #{deps}"
               freeFlag = false
               break
             end
@@ -946,7 +963,7 @@ module Dea
       
       
       def isBlockRequiredForFree(algorithmOldVersionRootTxs , txContext, isUpdateReqRCVD, depMgr) #Set<String>
-        
+        logger = depMgr.logger
         if !isUpdateReqRCVD
           return false
           
@@ -959,10 +976,10 @@ module Dea
           
           realRootTxId = txContext.rootTx
           
-          puts "real rootTxId : #{realRootTxId} proxyRootTxId: #{rootTx} not blocked ,\n algorithm : #{algorithmOldVersionRootTxs}"
+          logger.debug "real rootTxId : #{realRootTxId} proxyRootTxId: #{rootTx} not blocked ,\n algorithm : #{algorithmOldVersionRootTxs}"
           return false
         else
-          puts "real rootTxId : #{realRootTxId} proxyRootTxId: #{rootTx} is blocked ,\n algorithm : #{algorithmOldVersionRootTxs}"
+          logger.debug "real rootTxId : #{realRootTxId} proxyRootTxId: #{rootTx} is blocked ,\n algorithm : #{algorithmOldVersionRootTxs}"
           return true
         end
       end
@@ -970,36 +987,37 @@ module Dea
       
       
       def updateIsDone(hostComp,depMgr)
-        puts "vc : called updateIsDone"
+        logger = depMgr.logger
+        logger.debug "vc : called updateIsDone"
         @isSetupDone.clear 
-        # puts "a"
+        # logger.debug "a"
         scope = depMgr.scope
-        # puts "b"
+        # logger.debug "b"
         parentComps = Set.new
-        # puts "c"
+        # logger.debug "c"
         if scope != nil
-          # puts  "scope not nil"
+          # logger.debug  "scope not nil"
           parentComps = scope.parentComponents[hostComp]
-          # puts scope.parentComponents[hostComp].size
+          # logger.debug scope.parentComponents[hostComp].size
         else
-          puts "scope nil"
+          logger.debug "scope nil"
           parentComps = depMgr.compObj.staticInDeps
-          puts depMgr.compObj.staticInDeps.size
+          logger.debug depMgr.compObj.staticInDeps.size
         end
         
-        puts parentComps.size
+        logger.debug parentComps.size
         
         parentComps.each{|comp|
-          puts "parent comp = #{comp} "
+          logger.debug "parent comp = #{comp} "
           payloadSend = Dea::ConsistencyPayloadCreator.createRemoteUpDateIsDonePayload(hostComp,comp, DepOperationType::NOTIFY_REMOTE_UPDATE_DONE)
             
             
          comm =  @xmlUtil.getAllComponentsComm
-         puts "comm"
+         logger.debug "comm"
          ip =  "192.168.12.34"
          port =  comm[comp]
          
-         puts "#{ip},#{port}"
+         logger.debug "#{ip},#{port}"
   #               paras=  ip,port,srcIdentifier,targetIdentifier,protocol,msgType,payload,commType
          Dea::ASynCommClient.sendMsg(ip,port,hostComp,comp,
                                           "CONSISTENCY",MsgType::DEPENDENCE_MSG,payloadSend,"Async")
@@ -1020,7 +1038,8 @@ module Dea
       end
       
       def initLocalSubTx(txContext,compLifecycleMgr,depMgr)
-        puts "#{compLifecycleMgr.compObj.identifier}.vc : initLocalSubTx"
+        logger = depMgr.logger
+        logger.debug "#{compLifecycleMgr.compObj.identifier}.vc : initLocalSubTx"
         #该方法原来是在bufferInterceptor中执行的，可能被拦截。比如说，ondemand过程中
         hostComp = txContext.hostComponent
         fakeSubTx = txContext.currentTx
@@ -1040,7 +1059,7 @@ module Dea
           if compLifecycleMgr.compStatus == CompStatus::ONDEMAND
             #如果是在ondemand过程中接受到的，才去添加future和past边?
             lfe = Dependence.new(FUTURE_DEP,rootTx,hostComp,hostComp,nil,nil)
-            puts "vc: lfe=#{lfe}"
+            logger.debug "vc: lfe=#{lfe}"
             if !rtInDeps.include?(lfe)
               rtInDeps << lfe
             end
@@ -1050,7 +1069,7 @@ module Dea
             end
             
             lpe = Dependence.new(PAST_DEP,rootTx,hostComp,hostComp,nil,nil)
-            puts "vc: lpe=#{lpe}"
+            logger.debug "vc: lpe=#{lpe}"
             if !rtInDeps.include?(lpe)
               rtInDeps << lpe
             end
@@ -1063,9 +1082,9 @@ module Dea
             #ACK_SUBTX_INIT
             
             payload = ConsistencyPayloadCreator.createPayload6(hostComp,parentComp,rootTx,DepOperationType::ACK_SUBTX_INIT , parentTx,fakeSubTx)
-            puts "payload = #{payload}"
-            #TODO notify testing
-            #synPost(hostComp, parentComp,"consistency", "dependency_msg" , payload)  
+            logger.debug "payload = #{payload}"
+            #  notify testing
+             
             depNotify(hostComp,parentComp,payload)
           end
         end
@@ -1075,7 +1094,7 @@ module Dea
       
       
       def notifySubTxStatus(subTxStatus, invocationCtx,compLifecycleMgr, depMgr,proxyRootTxId)
-        
+        logger = depMgr.logger
         name = compLifecycleMgr.compObj.identifier
         
         parentTx = invocationCtx.parentTx
@@ -1084,17 +1103,17 @@ module Dea
         rootTx = invocationCtx.rootTx
         curComp = invocationCtx.parentComp
         
-        puts "#{name}.vc: SubTxStatus = #{subTxStatus} , proxyRootTxId = #{proxyRootTxId} \n \t invocationCtx = #{invocationCtx}"
+        logger.debug "#{name}.vc: SubTxStatus = #{subTxStatus} , proxyRootTxId = #{proxyRootTxId} \n \t invocationCtx = #{invocationCtx}"
         if subTxStatus == TxEventType::TransactionStart
           
           ondemandSyncMonitor = compLifecycleMgr.compObj.ondemandSyncMonitor
           
           ondemandSyncMonitor.synchronize do
             allTxs = depMgr.getTxs() # Map<String,TxContext>
-            puts "vc: allTx =  #{allTxs}"
-            puts "vc: parentTx = #{parentTx}"
+            logger.debug "vc: allTx =  #{allTxs}"
+            logger.debug "vc: parentTx = #{parentTx}"
             txCtx = allTxs[parentTx]
-            puts "vc.notifySubTxStatus : #{txCtx}"
+            logger.debug "vc.notifySubTxStatus : #{txCtx}"
             if   txCtx
               subTxHostComps = txCtx.subTxHostComps # Map<String,String>
               subTxStatuses = txCtx.subTxStatuses
@@ -1102,34 +1121,20 @@ module Dea
               subTxHostComps[subTx]=subComp
               subTxStatuses[subTx]=TxEventType::TransactionStart
             else
-              puts "vc.notifySubTx : txCtx == nil"
+              logger.debug "vc.notifySubTx : txCtx == nil"
             end
           end
           
           return true
         elsif subTxStatus == TxEventType::TransactionEnd
-          puts "vc.notifySubTxStatus subTxStatus=TxEnd"
+          logger.debug "vc.notifySubTxStatus subTxStatus=TxEnd"
           return doNotifySubTxEnd(subComp,curComp,proxyRootTxId,parentTx,subTx,compLifecycleMgr,depMgr)
         else
-          puts "vc: unexpected sub transaction status #{subTxStatus}"
+          logger.debug "vc: unexpected sub transaction status #{subTxStatus}"
           return false
         end
       end
       
       
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-    
   end
 end

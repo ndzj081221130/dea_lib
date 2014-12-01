@@ -15,7 +15,7 @@ config = {}
 config["collect_port"] = Cons::PaPa_Port
 config["collect_ip"] = "192.168.12.34"
 instance = nil
-@collect_server = Dea::CollectServer.new(config["collect_ip"],config["collect_port"],config,instance)
+@collect_server = Dea::MessageServer.new(config["collect_ip"],config["collect_port"],config,instance)
 @collect_server.start
 
 

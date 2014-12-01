@@ -13,10 +13,10 @@ configY = YAML.load_file("/vagrant/dea_ng/config/dea.yml")
 
 config = Dea::Config.new(configY)
 
-port = Integer(config["query_port"])
+port = Integer(config["query_port"]) + 1
 
  
-collect_server = Dea::QueryServer.new(config["collect_ip"],port,config)
+collect_server = Dea::QueryServer.new(config["collect_ip"],port,config,nil)
  
     
 collect_server.start

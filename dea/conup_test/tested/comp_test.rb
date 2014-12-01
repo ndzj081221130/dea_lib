@@ -4,11 +4,10 @@ require "../conup/component"
 require "set"
 
 id = "AuthComponent"
-version ="1.0"
+version ="8010"
 alg="consistency"
 freeConf="concurrent_version_for_freeness"
 deps = Set.new #children#
-#deps << ""
 indeps = Set.new #parents
 indeps << "ProcComponent"
 indeps << "PortalComponent"
