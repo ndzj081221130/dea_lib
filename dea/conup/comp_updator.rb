@@ -7,12 +7,12 @@ module Dea
     IMPL_TYPE ="JAVA_POJO"
     attr_accessor :isUpdated
     attr_accessor :baseDir
-    
+    attr_accessor :logger2
     def initialize #initialize
       isUpdated=false
       @deletedAlready = false
        
-       setup_logging
+      setup_logging
     
       
     end
@@ -42,49 +42,50 @@ module Dea
               nodeMgr = Dea::NodeManager.instance
               
               pushMonitor = nodeMgr.pushMonitor
-              puts "#{@keyGet} try to enter updateMgr's push Monitor "
+              logger2.debug "#{@keyGet} try to enter updateMgr's push Monitor "
               pushMonitor.synchronize do
             
-               puts "#{@keyGet} in updateMgr's push Monitor "
-               cmd0 = "pwd"
+              logger2.debug "#{@keyGet} in updateMgr's push Monitor "
+              cmd0 = "pwd"
           
               old_name = instance.application_name
-              puts "#{@keyGet} #{old_name}"
+              logger2.debug "#{@keyGet} #{old_name}"
                
-               #---------------------#
+               #----------this is actually pushed another app but bind to the same url -----------#
                new_name = old_name+"_new"
                @already_pushed = instance.bootstrap.instance_registry.has_instances_for_application(new_name)
                
-               puts "#{@keyGet} . already push = #{@already_pushed}"
+               logger2.debug "#{@keyGet} . already push = #{@already_pushed}"
             if @already_pushed
                 puts "#{@keyGet}.already has #{new_name} instance, no need push ,just cf increate #{new_name}"
                 
                 command = "cf increase #{new_name}"
                 
-                puts "#{@keyGet}.#{command}"
+                logger2.debug "#{@keyGet}.#{command}"
                 
                 tar_output = run_with_err_output(command)# command, or system will new a sub process??
-                puts "#{@keyGet}.compUpdator , exe cf increase result : #{tar_output}"
+                logger2.debug "#{@keyGet}.compUpdator , exe cf increase result : #{tar_output}"
                 
                 today = Time.new
 
-                puts "increase instance , today =  #{today}"
+                logger2.debug "increase instance , today =  #{today}"
                 
                 logger.info("increase instance today = #{today}")
             else
                   
                 command = "cd #{@baseDir} && cf push"
-                puts "#{@keyGet}.#{command}"
+                logger2.debug "#{@keyGet}.#{command}"
                 tar_output = run_with_err_output(command)# command, or system will new a sub process??
-                puts "#{@keyGet}.compUpdator , exe push result : #{tar_output}"
+                logger2.debug "#{@keyGet}.compUpdator , exe push result : #{tar_output}"
                 today_push = Time.new
-                puts "push instance , today = #{today_push}"
+                logger2.debug "push instance , today = #{today_push}"
                 
                 logger.info("push instance today = #{today_push}")
             end
         end
         
-        puts "#{@keyGet} out updateMgr's push Monitor "
+        logger2.debug "#{@keyGet} out updateMgr's push Monitor? "
+        
         
         isUpdated= true
         return true
@@ -133,17 +134,12 @@ module Dea
           
             puts " #{@keyGet} #{old_name } not removed , delete map first"
             
-            # cmd2 = "cf delete-force #{old_name}"
-            # puts "#{@keyGet}. #{cmd2}"
-            # tar_output1 = run_with_err_output cmd2
-            # puts "#{@keyGet}.exe cf delete-force result: #{tar_output1}"
-            
-            # cf unmap proc.192.168.12.34.xip.io proc
-            
+           
             cmd3 = "cf unmap #{@targetUri} #{old_name}"
-            puts "#{@keyGet} . #{cmd3}"
-            target_output3 = run_with_err_output cmd3
-            puts "#{@keyGet} .exe cf unmap #{@targetUri} #{old_name} result : #{target_out3}"
+            puts "#{@keyGet}.execute #{cmd3}"
+            #target_output3 =
+             run_with_err_output cmd3
+           # puts "#{@keyGet} .exe cf unmap #{@targetUri} #{old_name}, result : #{target_out3}"
             nodeMgr.removeComponentsViaName(old_name)
               
                  
@@ -194,6 +190,14 @@ module Dea
     
     private
 
+    def logger2
+      @logger2 ||= Logger.new("/vagrant/logs/comp_updator.log")
+    end
+    
+    def logger2=(logger_)
+      @logger2 = logger_
+    end 
+    
     def logger
       @logger ||= self.class.logger
     end

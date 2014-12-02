@@ -57,11 +57,8 @@ puts node1.setCompLifecycleManager(id,compLifecycleMgr)
 txLifecycleMgr = Dea::TxLifecycleManager.new(compProc)
 node1.setTxLifecycleManager(id,txLifecycleMgr)
 txMonitor = Dea::TxDepMonitor.new(compProc)
-
 txMonitor.txLifecycleMgr=txLifecycleMgr
-
 puts node1.setTxDepMonitor(id,txMonitor)
-# helper = OndemandSetupHelper.new(compProc)
 node1.getOndemandSetupHelper(id)
 txLifecycleMgr.createID("9b096cee-475b-4359-acc9-46cdb934db1b") 
 # what ID , java create uuid in txLifecycleMgr

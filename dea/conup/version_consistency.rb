@@ -68,7 +68,7 @@ module Dea
           return true
         end      
         
-        manageDefResult = false;
+        manageDefResult = false 
         
         sourceComp = params["srcComp"]
         targetComp = params["targetComp"]
@@ -601,7 +601,7 @@ module Dea
      def doNotifyRemoteUpdateDone(sourceComp,hostComp,depMgr)
        logger = depMgr.logger
        logger.debug "vc: #{hostComp} received notfiyRemoteUpdateDone from #{sourceComp}" 
-       #assert_equal(hostComp,depMgr.compLifecycleMgr.compObj.identifier)
+        
        puts "vc: #{hostComp} received notfiyRemoteUpdateDone from #{sourceComp}" 
        if hostComp == depMgr.compLifecycleMgr.compObj.identifier
          logger.debug "equal hostComp & depMgr....id"
@@ -990,16 +990,14 @@ module Dea
         logger = depMgr.logger
         logger.debug "vc : called updateIsDone"
         @isSetupDone.clear 
-        # logger.debug "a"
+         
         scope = depMgr.scope
-        # logger.debug "b"
+         
         parentComps = Set.new
-        # logger.debug "c"
+        
         if scope != nil
-          # logger.debug  "scope not nil"
-          parentComps = scope.parentComponents[hostComp]
-          # logger.debug scope.parentComponents[hostComp].size
-        else
+           parentComps = scope.parentComponents[hostComp]
+         else
           logger.debug "scope nil"
           parentComps = depMgr.compObj.staticInDeps
           logger.debug depMgr.compObj.staticInDeps.size

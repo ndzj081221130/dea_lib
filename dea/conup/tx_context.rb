@@ -87,13 +87,13 @@ module Dea
               "current: " + @hostComponent +
               " " + @currentTx +" " 
       end
-       if @eventType!=nil
+       
+      if @eventType!=nil
          result += @eventType +", " 
-         end      
-       result        +=
-              #"futureC: " +
-              #"pastC: " +
-              "subTxs:"
+      end      
+       
+       result += "subTxs:"
+       
        if !@subTxHostComps
        @subTxHostComps.each{ |key , value|
           result += "\n" + key +" " + value + " " + @subTxStatuses[key]

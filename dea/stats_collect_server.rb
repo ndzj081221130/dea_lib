@@ -60,7 +60,7 @@ module Dea
               target =  json["SubName"] 
               invocationCtxFromHeader =  json["InvocationCtx"]# 空的？？？why？？？
            #   puts "InvocationCtxFrom header #{invocationCtxFromHeader}"
-              #    问题 invocationContext中的fakeTx是怎么回事?主要是，call生成一个fakeSubTX，因为此时，call不知道hell的tx
+ #    问题 invocationContext中的fakeTx是怎么回事?主要是，call生成一个fakeSubTX，因为此时，call不知道hell的tx
     
             
              name = target
@@ -83,7 +83,7 @@ module Dea
                   txDepMonitor = Dea::TxDepMonitor.new(comp)
                   node.setTxDepMonitor(key,txDepMonitor)
                   
-                  depMgr = node.getDynamicDepManager(key)#Dea::DynamicDepManager.new(comp)
+                  depMgr = node.getDynamicDepManager(key)
                   depMgr.txLifecycleMgr= txLifecycleMgr
                   depMgr.compLifecycleMgr= compLifeMgr
                   
@@ -97,7 +97,7 @@ module Dea
             logger = txLifecycleMgr.logger                     
             invocationContext = InvocationContext.getInvocationCtx(invocationCtxFromHeader)
             txLifecycleMgr.notifyCache(invocationContext)
-            # 走到这里，显然说明，不是一个根事务啊
+            # 走到这里，显然说明，不是一个根事务
             Dea::NodeManager.instance.getTxLifecycleManager(key).resolveInvocationContext(invocationContext,name)
            
             puts "#{key} get msg from router"  
@@ -202,10 +202,9 @@ module Dea
           # if txCtx.getRootTx != nil
           #     txLifecycleMgr.initLocalSubTx(name,subTx,txCtx)
           # end 
-          #在这里拦截所有的请求？？？判断是否需要阻塞？？？
           #应该是这样的
           
-          #在notify前拦截，如果是on demand过程，就缓存请求
+         
           if eventType == Dea::TxEventType::TransactionStart
               # DEA向Router查询，到本实例的请求，是否是来自某个根事务？
               router_ip = @instance.bootstrap.config["router_ip"]
@@ -215,7 +214,7 @@ module Dea
   
               msg["InstanceId"] = @instance.private_instance_id
               ref = msg.to_json      
-              puts "#{name} send private_instance_id to router : #{@instance.private_instance_id}"
+              puts "#{name} send private_instance_id to router : private_instance_id= #{@instance.private_instance_id}"
               streamSock = TCPSocket.new( "192.168.12.34", 6666 )  
               streamSock.write( ref )  
               str = streamSock.recv( 1024 )  
@@ -239,7 +238,7 @@ module Dea
                 #^_^，这里调用endLocal
               # elsif invocationCtx.subTx != nil && invocationCtx.hostComp == invocationCtx.subComp
 #                 
-                # puts "end a "
+             
                 send_data("no need call ")
                 close_connection_after_writing
               else

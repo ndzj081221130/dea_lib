@@ -12,6 +12,12 @@ require_relative "./ondemand_setup_helper"
 require_relative "./dynamic_update_context"
 require_relative "./msg_type"
 require_relative "./update_context_payload_resolver"
+require_relative "./consistency_payload_creator"
+require_relative "./dep_op_type"
+
+require_relative "./update_operation_type"
+require_relative "./update_context_payload_creator"
+
 require_relative "./comp_status"
 require_relative "./waiting_freeness_strategy"
 require_relative "./blocking_freeness_strategy"
@@ -138,18 +144,19 @@ module Dea
     
     
     def cleanUpdate
-      #TODO 
+      
       compIdentifier = @compObj.identifier
       puts "update_mgr : *** before set to new version"
       
       
-       @compUpdator.finalizeOld(compIdentifier,@updateCtx.oldVerClass,@updateCtx.newVerClass,@instance)
-        @compUpdator.initNewVersion(compIdentifier,@updateCtx.newVerClass)
-        @compUpdator.cleanUpdate(compIdentifier) 
-        @compUpdator = CompUpdator.new()
+      @compUpdator.finalizeOld(compIdentifier,@updateCtx.oldVerClass,@updateCtx.newVerClass,@instance)
+      @compUpdator.initNewVersion(compIdentifier,@updateCtx.newVerClass)
+      @compUpdator.cleanUpdate(compIdentifier) 
+      @compUpdator = CompUpdator.new()
         
        node = Dea::NodeManager.instance
        
+       puts "delete ondemand by key #{@keyGet}"
        node.ondemandHelpers.delete @keyGet
      
        
@@ -160,7 +167,7 @@ module Dea
        updatingCondition = @compObj.updatingCondition
        
        updatingSyncMonitor.synchronize do
-         puts "updatingSyncMonitor同步块内"
+         puts "updatingSyncMonitor同步块内 in updateMgr.cleanUpdate()"
          @compLifecycleMgr.transitToNormal()
          @bufferEventType = Dea::BufferEventType::NORMAL
          notifyInterceptors(@bufferEventType)
@@ -173,6 +180,8 @@ module Dea
        
        @updateCtx = nil # TODO added by zhang
        
+       #TODO need test
+       node.compObjects.delete @keyGet
        
         
     end
@@ -220,6 +229,12 @@ module Dea
      manageResult = @depMgr.manageDependencePayload(reqObj.payload)
      return "manageDepResult:#{manageResult}"    
    end 
+    
+    def manageDepViaPayload(payload)
+      
+      manageResult = @depMgr.manageDependencePayload(payload)
+      return "manageDepViaPayload #{manageResult}"
+    end
     
     def manageOndemand(reqObj)
       ondemandResult = false
@@ -270,7 +285,7 @@ module Dea
       if updateOperationType == Dea::UpdateOperationType::NOTIFY_UPDATE_IS_DONE_EXP
         puts "coordination receive NOTIFY_UPDATE_IS_DONE_EXP"
       elsif updateOperationType == Dea::UpdateOperationType::GET_EXECUTION_RECORDER
-        return "update_mgr : action_"
+        return "update_mgr : action_recorder"
       end
       
       return "default message"

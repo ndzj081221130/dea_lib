@@ -4,9 +4,9 @@ require 'json'
 require_relative "./msg_type"
 require_relative "./update_operation_type"
 require_relative "./update_context_payload_creator"
-require_relative "./client"
-require_relative "./client_sync"
-require_relative "./client_sync_close"
+require_relative "./client_once"
+# require_relative "./client_sync"
+# require_relative "./client_sync_close"
 require_relative "./client_sync_response"
 require_relative "./comm_type"
 require_relative "./query_type"
@@ -55,7 +55,7 @@ module Dea
       
       client = Dea::ClientSyncResponse.new(ip,"8700",msg.to_json)   
       response = client.response
-      puts "updateApp , res = #{response }"
+      puts "updateApp , res = #{response}"
       @jsonArray = JSON::parse(response)
       @jsonArray.each{|port|
          puts "port = #{port}"

@@ -81,16 +81,18 @@ require "../conup/scope"
     # puts tcc.getProxyRootTxId(scope) 
     
 
-##################test3 #######################3
-scope =  Dea::Scope.new
+##################test3 is testing scope ####################### 
+    scope =  Dea::Scope.new
       parentComps =  []
      subComps = []
       targetComps = []
-parentComps<<"C" #
-    parentComps<<"E" #
+    parentComps<<"C"  
+    parentComps<<"E"  
     scope.addComponent("D", parentComps, subComps)#
 
-puts scope.parentComponents["D"]
+    puts scope.parentComponents["D"]
+
+
     # C component
      parentComp =  []
      subComp = []
@@ -110,34 +112,33 @@ puts scope.parentComponents["D"]
     subCo<<"C"#
     scope.addComponent("B", parentCo , subCo )#
 
-    scope.isSpecifiedScope =true #
+    scope.isSpecifiedScope =true  
 
-     tc =  Dea::TxContext.new #
+    tc =  Dea::TxContext.new  
     tc.currentTx="657c-4791-4791-8fae-f1cda8d2dd53" #
     tc.hostComponent="D" #
     tc.parentComponent="E" #
     tc.parentTx="d130a1f8-657c-4791-8fae-f1cda8d2dd53" 
     tc.rootComponent="A" 
     tc.rootTx="a358ab2d-cf1a-4e7e-857a-d89c2db40102" 
-      invocationSequence = "A:a358ab2d-cf1a-4e7e-857a-d89c2db40102>E:d130a1f8-657c-4791-8fae-f1cda8d2dd53"#
+    invocationSequence = "A:a358ab2d-cf1a-4e7e-857a-d89c2db40102>E:d130a1f8-657c-4791-8fae-f1cda8d2dd53"#
     tc.invocationSequence=invocationSequence 
     #assertEquals("d130a1f8-657c-4791-8fae-f1cda8d2dd53",
-     puts   tc.getProxyRootTxId(scope) 
+    puts tc.getProxyRootTxId(scope) 
 
-# /vagrant/dea_ng/lib/dea/conup/scope.rb:112: stack level too deep (SystemStackError)
-
+ 
 ##############################test4#########################
-toString = "AuthComponent<ProcComponent#ProcComponent>AuthComponent#TARGET_COMP@AuthComponent#SCOPE_FLAG&true"# 
-      scope = Dea::Scope.inverse(toString)# 
+    toString = "AuthComponent<ProcComponent#ProcComponent>AuthComponent#TARGET_COMP@AuthComponent#SCOPE_FLAG&true"  
+    scope = Dea::Scope.inverse(toString)  
     
-      tc =  Dea::TxContext.new# 
-    tc.currentTx="657c-4791-4791-8fae-f1cda8d2dd53"# 
-    tc.hostComponent="AuthComponent"# 
-    tc.parentComponent="PortalComponent"# 
-    tc.parentTx="d130a1f8-657c-4791-8fae-f1cda8d2dd53"# 
-    tc.rootComponent="PortalComponent"# 
-    tc.rootTx="d130a1f8-657c-4791-8fae-f1cda8d2dd53"# 
-    tc.invocationSequence="PortalComponent:d130a1f8-657c-4791-8fae-f1cda8d2dd53"# 
+    tc =  Dea::TxContext.new# 
+    tc.currentTx="657c-4791-4791-8fae-f1cda8d2dd53"  
+    tc.hostComponent="AuthComponent"  
+    tc.parentComponent="PortalComponent"  
+    tc.parentTx="d130a1f8-657c-4791-8fae-f1cda8d2dd53" 
+    tc.rootComponent="PortalComponent"  
+    tc.rootTx="d130a1f8-657c-4791-8fae-f1cda8d2dd53"  
+    tc.invocationSequence="PortalComponent:d130a1f8-657c-4791-8fae-f1cda8d2dd53"  
     #assertEquals("657c-4791-4791-8fae-f1cda8d2dd53", 
     puts tc.getProxyRootTxId(scope)# 
 

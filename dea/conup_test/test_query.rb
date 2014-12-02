@@ -11,7 +11,7 @@ targetIdentifier = "HelloworldComponent"
 baseDir ="/vagrant/test/helloworld-jsonrpc2"
 
       ip = "192.168.12.34"
-      port = 8701
+      port = 8700
       msg = {}
       
       
@@ -47,12 +47,12 @@ baseDir ="/vagrant/test/helloworld-jsonrpc2"
 
 ##############################test4 #########################
 
-msg["msgType"] = Dea::QueryType::AddComponent
-msg["componentName"] = "HelloworldComponent"
-msg["componentVersionPort"] = "8001"
-clienta = Dea::ClientSyncResponse.new(ip,port,msg.to_json)
-response = clienta.response
-puts "#{response}"
+# msg["msgType"] = Dea::QueryType::AddComponent
+# msg["componentName"] = "HelloworldComponent"
+# msg["componentVersionPort"] = "8001"
+# clienta = Dea::ClientSyncResponse.new(ip,port,msg.to_json)
+# response = clienta.response
+# puts "#{response}"
 
 ######### test5 #####################
 # msg["msgType"] = Dea::QueryType::ComponentLifecycleMgr

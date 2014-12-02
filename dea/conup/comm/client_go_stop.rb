@@ -26,7 +26,7 @@ module Dea
       
       puts "reved #{data}"
       close_connection #在接受到消息后，关闭链接？
-      EventMachine::stop # bu fang shi yi shi,这个在用户通信时，要关掉，但是放在stats_server不能。
+      EventMachine::stop # ,这个在用户通信时，要关掉，但是放在stats_server不能。
       puts "after close conn"
     end
 

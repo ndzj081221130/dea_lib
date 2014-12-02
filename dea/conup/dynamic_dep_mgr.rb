@@ -122,7 +122,9 @@ module Dea
       @logger.debug "#{@keyGet}.ddm params #{params}"
       return @algorithm.manageDependence4(operation , params, self, @compLifecycleMgr)
     end
-    # private method
+    
+    
+ 
     def manageDependence(txContext) #TransactionContext
       @logger.debug "#{@keyGet}.ddm : in manageDepedence(txCtx) compLifecycleMgr.nil #{@compLifecycleMgr == nil }"
       @algorithm.manageDependence3(txContext, self, @compLifecycleMgr)

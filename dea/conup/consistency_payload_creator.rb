@@ -15,7 +15,7 @@ module Dea
                Dea::DepPayload::ROOT_TX + ":" + rootTx + "," + 
                Dea::DepPayload::OPERATION_TYPE + ":" + operation + "," + 
                Dea::DepPayload::PARENT_TX + ":" + parentTxID +"," + 
-               Dea::DepPayload::SUB_TX ;
+               Dea::DepPayload::SUB_TX  
                                                                   
       result                                                 
     end

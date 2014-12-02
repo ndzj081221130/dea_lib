@@ -9,7 +9,7 @@ require_relative "../conup/query_type"
 require 'json'
 
 targetIdentifier = "HelloworldComponent"
- protocol = "auth.192.168.12.34"
+protocol = "auth.192.168.12.34"
 baseDir ="/vagrant/test/helloworld-jsonrpc2"
 
       ip = "192.168.12.34"

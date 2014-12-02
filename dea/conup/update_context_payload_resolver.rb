@@ -20,14 +20,14 @@ module Dea
     # resolve pay load
     def resolve(payload)
       keyValues = payload.split(/,/)
-      # puts keyValues.size
+     
       keyValues.each{|kv|
         
         pair = kv.split(/:/)
-        # puts pair[0]
+       
         if pair[0] == Dea::UpdateContextPayload::OPERATION_TYPE
           @operation= pair[1]
-          # puts "pair[1] = #{pair[1]}"
+          
         else
           @parameters[pair[0]]=pair[1]
         end
