@@ -1,9 +1,7 @@
 # UTF-8
-require_relative "./constant"
-require_relative "../conup/client"
-require_relative "../conup/client_sync"
+require_relative "./constant" 
 require "json"
-require_relative "../conup/client_sync_close"
+require_relative "../conup/comm/client_sync_close"
 
 ip="192.168.12.34"
 port= "8000"

@@ -13,12 +13,14 @@ require_relative "./comp_lifecycle_mgr"
 require_relative "./dep_payload_resolver"
 require_relative "./dep_payload"
 require_relative "./dep"
-require_relative "./comp_status"
+require_relative "./datamodel/comp_status"
+require_relative "./datamodel/msg_type"
+require_relative "./datamodel/tx_event_type"
 require_relative "./xml_util"
 require_relative "./ondemand_setup_helper"
-require_relative "./dep_op_type"
-require_relative "./async_comm_client"
-require_relative "./sync_comm_client"
+require_relative "./datamodel/dep_op_type"
+require_relative "./comm/async_comm_client"
+require_relative "./comm/sync_comm_client"
 require_relative "./node_mgr"
 module Dea
   class VCOndemandSetup < Monitor
@@ -724,10 +726,10 @@ module Dea
                 end
                 
                 # change current componentStatus to ondemand
-                # test
+                
                 updateMgr = Dea::NodeManager.instance.getUpdateManager(@keyGet)
                 
-                updateMgr.ondemandSetting()
+                updateMgr.ondemandSetting() #这里最终将instance改为ondemand状态
                 # send reqOndemandSetup(...) to parent Comps
                 sendReqOndemandSetup(parentComponents,currentComp) #为什么有时候parent是空的？？？
                 # onDemandSetup

@@ -1,10 +1,10 @@
 # DeleteComponent
 
     
-require_relative "../conup/client_sync_response"
+require_relative "../conup/comm/client_sync_response"
 
-require_relative "../conup/comm_type"
-require_relative "../conup/query_type"
+# require_relative "../conup/datamodel/comm_type"
+require_relative "../conup/datamodel/query_type"
 
 require 'json'
 

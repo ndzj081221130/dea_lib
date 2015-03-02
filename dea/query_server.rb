@@ -5,17 +5,17 @@ require 'json'
 require "set"
 
 require_relative "./conup/tx_dep_monitor"
-require_relative "./conup/tx_event_type"
-require_relative "./conup/client"
-require_relative "./conup/client_sync"
-require_relative "./conup/query_type"
+# require_relative "./conup/datamodel/tx_event_type"
+require_relative "./conup/comm/client_once"
+require_relative "./conup/comm/client_sync"
+require_relative "./conup/datamodel/query_type"
 require_relative "./conup/tx_lifecycle_mgr"
 require_relative "./conup/invocation_context"
 require_relative "./conup/request_object"
 require_relative "./conup/update_mgr"
-require_relative "./conup/comp_status"
+#require_relative "./conup/datamodel/comp_status"
 require_relative "./conup/comp_lifecycle_mgr"
-require_relative "./conup/buffer_event_type"
+require_relative "./conup/datamodel/buffer_event_type"
 require_relative "./conup/node_mgr"
 module Dea
   class QueryServer

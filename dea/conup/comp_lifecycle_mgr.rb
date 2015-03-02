@@ -3,7 +3,7 @@
 #require "eventmachine"
 require "steno"
 require "steno/core_ext"
-require_relative "./comp_status"
+require_relative "./datamodel/comp_status"
 require_relative "./dynamic_dep_mgr"
 require "monitor"
 require_relative "./node_mgr"

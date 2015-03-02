@@ -2,7 +2,7 @@
 
 require "steno"
 require "steno/core_ext"
-# require_relative "./dep_op_type"
+# require_relative "./datamodel/dep_op_type"
 require_relative "./dep_payload"
 
 module Dea

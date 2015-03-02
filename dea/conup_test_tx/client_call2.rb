@@ -1,6 +1,6 @@
 # UTF-8
 
-require_relative "../conup/client"
+require_relative "../conup/comm/client_once"
 
 ip="192.168.12.34"
             port="8002"

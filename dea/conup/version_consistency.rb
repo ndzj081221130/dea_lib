@@ -5,14 +5,19 @@
  require  "set"
  require 'minitest/autorun'
  require_relative "./tx_context"
- require_relative "./tx_event_type"
+ require_relative "./datamodel/tx_event_type"
  require_relative "./dynamic_dep_mgr"
  require_relative "./comp_lifecycle_mgr"
- require_relative "./comp_status"
+ require_relative "./datamodel/comp_status"
+ require_relative "./datamodel/dep_op_type"
+ require_relative "./datamodel/msg_type"
  require_relative "./dep"
  require_relative "./dep_registry"
  require_relative "./consistency_payload_creator"
  require_relative "./xml_util"
+ require_relative "./comm/async_comm_client"
+ require_relative "./comm/sync_comm_client"
+ 
 module Dea
   class VersionConsistency
     
@@ -53,7 +58,7 @@ module Dea
         doValid(txContext,depMgr,txDepRegistry)
       when CompStatus::FREE
          logger.debug "#{compLifecycleMgr.compObj.identifier}.vc manageDependence3 , status = free"
-        doValid(txContext, depMgr,txDepRegistry)
+         doValid(txContext, depMgr,txDepRegistry)
       else
         logger.debug "vc: in else : comStatus: #{compStatus}"
        end 
@@ -214,8 +219,8 @@ module Dea
                              txContext.parentComponent,rootTx,DepOperationType::ACK_SUBTX_INIT,
                              txContext.parentTx,txContext.currentTx)
                              
-          #    
-          #
+              
+          
           logger.debug "#{txContext.hostComponent}.vc: notify parent ,  that a new sub-tx start"
           depNotify(hostComp,txContext.parentComponent,payload)
                              
@@ -268,7 +273,7 @@ module Dea
                   logger.debug "hostComp = #{hostComp}"  
               end
                 
-                logger.debug
+             #   logger.debug
               }
               
       elsif txEventType == TxEventType::TransactionEnd

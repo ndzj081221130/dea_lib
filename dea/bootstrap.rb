@@ -11,7 +11,7 @@ require "thin"
 
 require "vcap/common"
 require "vcap/component"
-require_relative "./conup/client_sync"
+require_relative "./conup/comm/client_sync"
 require_relative "./conup/node_mgr"
 require "dea/query_server"
 require "dea/config"

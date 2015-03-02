@@ -1,7 +1,7 @@
 # coding: UTF-8
 
 
-require "../conup/comp_status"
+require "../conup/datamodel/comp_status"
 
 if "NORMAL" == Dea::CompStatus::NORMAL
   puts "equal normal"

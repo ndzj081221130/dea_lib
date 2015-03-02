@@ -1,4 +1,4 @@
-require_relative "../conup/client"
+require_relative "../conup/comm/client_once"
 
 ref ="{\"PastComps\":[],\"indeps\":[\"CallComponent\"],"+
             "\"event_type\":\"TransactionStart\",\"name\":\"HelloComponent\","+

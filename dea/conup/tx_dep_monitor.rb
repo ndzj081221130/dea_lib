@@ -5,7 +5,8 @@ require "steno/core_ext"
 require "set"
 require_relative "./tx_dep_registry"
 require_relative "./tx_lifecycle_mgr"
-require_relative "./tx_event_type"
+require_relative "./datamodel/tx_event_type"
+require_relative "./datamodel/comp_status"
 require_relative "./dynamic_dep_mgr"
 require_relative "./update_mgr"
 require_relative "./comp_lifecycle_mgr"
@@ -31,9 +32,12 @@ module Dea
       @keyGet = key
     end
    
-    def notify(et , curTxID , futureC , pastC) # maybe collect_server will call this method or some other Mgr will call this
-      # futureC is a set with Future Services like this cn.edu.nju.moon.conup.sample.proc.services.DBService
-      #there are four TxEventType , 
+    def notify(et , curTxID , futureC , pastC) 
+      # maybe collect_server will call this method or some other Mgr will call this
+      # futureC is a set with Future components   
+      #there are four TxEventType   
+      
+      
       #logger.info "TxDepMonitor.notify #{et} , #{curTxID}"
       
       txContext = @txLifecycleMgr.getTransactionContext(curTxID)
@@ -47,8 +51,8 @@ module Dea
       # check txContext!=nil
       #   testing get a ondemandMonitor and 修改eventType
       
-       key = @compObj.identifier + ":" + @compObj.componentVersionPort.to_s
-      compLifecycleMgr = Dea::NodeManager.instance.getCompLifecycleManager(key)
+      key = @compObj.identifier + ":" + @compObj.componentVersionPort.to_s
+      compLifecycleMgr = Dea::NodeManager.instance.getCompLifecycleManager(@keyGet)
       ondemandMonitor = @compObj.ondemandSyncMonitor
       
       ondemandMonitor.synchronize do
@@ -59,8 +63,8 @@ module Dea
       txDep = TxDep.new(futureC , pastC)
       
       @txDepRegistry.addLocalDep(curTxID,txDep)
-      key = @compObj.identifier + ":" + @compObj.componentVersionPort.to_s
-      dynamicDepMgr = Dea::NodeManager.instance.getDynamicDepManager(key)
+       
+      dynamicDepMgr = Dea::NodeManager.instance.getDynamicDepManager(@keyGet)
                  
       result = dynamicDepMgr.manageTx(txContext)
       @logger.debug "#{@keyGet}.tx_dep_monitor: ddm.manageTx result = #{result}"

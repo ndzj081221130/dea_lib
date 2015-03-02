@@ -3,22 +3,22 @@
 require "steno"
 require "steno/core_ext"
 require "monitor"
-require_relative "./buffer_event_type"
+require_relative "./datamodel/buffer_event_type"
 require_relative "./component"
 require_relative "./comp_lifecycle_mgr"
 require_relative "./dynamic_dep_mgr"
 require_relative "./comp_updator"
 require_relative "./ondemand_setup_helper"
 require_relative "./dynamic_update_context"
-require_relative "./msg_type"
+require_relative "./datamodel/msg_type"
 require_relative "./update_context_payload_resolver"
 require_relative "./consistency_payload_creator"
-require_relative "./dep_op_type"
+require_relative "./datamodel/dep_op_type"
 
 require_relative "./update_operation_type"
 require_relative "./update_context_payload_creator"
 
-require_relative "./comp_status"
+require_relative "./datamodel/comp_status"
 require_relative "./waiting_freeness_strategy"
 require_relative "./blocking_freeness_strategy"
 require_relative "./node_mgr"
@@ -115,16 +115,14 @@ module Dea
            
            if compStatus == Dea::CompStatus::VALID #|| compStatus == Dea::CompStatus::FREE
              @compLifecycleMgr.transitToFree
-             @bufferEventType = Dea::BufferEventType::EXEUPDATE
-             notifyInterceptors(@bufferEventType)
+             # @bufferEventType = Dea::BufferEventType::EXEUPDATE
+             # notifyInterceptors(@bufferEventType)
              puts "***#{@keyGet}. component has achieved free , now notify all ****"
              # java calls validToFreeSyncMonitor.notifyAll() , 
              # if I do nothing here ,will there be a dead lock??? of course there will!
              validCondition.signal()
              # should I call validToFreeSyncMonitor.signal ?  cause signal is call when we have a new_cond
-             # valid_cond = validToFreeSyncMonitor.new_cond
-             # valid_cond.wait_while {num.empty?}
-             # valid_cond.signal
+            
                                                                                                                                                                                                                     
            end
       end
@@ -169,8 +167,8 @@ module Dea
        updatingSyncMonitor.synchronize do
          puts "updatingSyncMonitor同步块内 in updateMgr.cleanUpdate()"
          @compLifecycleMgr.transitToNormal()
-         @bufferEventType = Dea::BufferEventType::NORMAL
-         notifyInterceptors(@bufferEventType)
+         # @bufferEventType = Dea::BufferEventType::NORMAL
+         # notifyInterceptors(@bufferEventType)
          updatingCondition.signal
            
          
@@ -450,18 +448,18 @@ module Dea
           @compLifecycleMgr.transitToValid
           
           if @compObj.isTargetComp
-            @bufferEventType = Dea::BufferEventType::VALIDTOFREE
+           # @bufferEventType = Dea::BufferEventType::VALIDTOFREE
             if !@updateCtx.isOldRootTxsInitiated
               initOldRootTxs()
             end
           else
             
-            @bufferEventType = Dea::BufferEventType::WAITFORREMOTEUPDATE
+           # @bufferEventType = Dea::BufferEventType::WAITFORREMOTEUPDATE
               
           end
           
 
-            notifyInterceptors(@bufferEventType)
+            #notifyInterceptors(@bufferEventType)
             #    一个component对应一个helper
              
             @ondemandSetupHelper.ondemandIsDone()
@@ -496,9 +494,9 @@ module Dea
         
         if compStatus == Dea::CompStatus::VALID
           @compLifecycleMgr.transitToNormal()
-          @bufferEventType = Dea::BufferEventType::NORMAL
-          
-          notifyInterceptors(@bufferEventType)
+          # @bufferEventType = Dea::BufferEventType::NORMAL
+#           
+          # notifyInterceptors(@bufferEventType)
           
           compIdentifier = @compObj.identifier
           

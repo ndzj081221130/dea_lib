@@ -5,17 +5,17 @@ require 'json'
 require "set"
 require 'socket' 
 require_relative "./conup/tx_dep_monitor"
-require_relative "./conup/tx_event_type"
-require_relative "./conup/client"
-require_relative "./conup/client_sync"
-require_relative "./conup/client_go_response"
+require_relative "./conup/datamodel/tx_event_type"
+require_relative "./conup/comm/client_once"
+require_relative "./conup/comm/client_sync"
+# require_relative "./conup/client_go_response"
 require_relative "./conup/tx_lifecycle_mgr"
 require_relative "./conup/invocation_context"
 require_relative "./conup/request_object"
 require_relative "./conup/update_mgr"
-require_relative "./conup/comp_status"
+require_relative "./conup/datamodel/comp_status"
 require_relative "./conup/comp_lifecycle_mgr"
-require_relative "./conup/buffer_event_type"
+require_relative "./conup/datamodel/buffer_event_type"
 require_relative "./conup/node_mgr"
 module Dea
   class MessageServer
@@ -60,7 +60,7 @@ module Dea
               target =  json["SubName"] 
               invocationCtxFromHeader =  json["InvocationCtx"]# 空的？？？why？？？
            #   puts "InvocationCtxFrom header #{invocationCtxFromHeader}"
- #    问题 invocationContext中的fakeTx是怎么回事?主要是，call生成一个fakeSubTX，因为此时，call不知道hell的tx
+           #    问题 invocationContext中的fakeTx是怎么回事?主要是，call生成一个fakeSubTX，因为此时，call不知道hell的tx
     
             
              name = target
@@ -105,7 +105,7 @@ module Dea
         end
       
       rescue Exception => e
-       # puts "Index Error: #{e} , that means , no root tx"
+        # puts "Index Error: #{e} , that means , no root tx"
         return
       end
 
@@ -196,7 +196,7 @@ module Dea
           comp.staticDeps = deps
           comp.staticInDeps = indeps
 
-          txMonitor = Dea::NodeManager.instance.getTxDepMonitor(key)
+          txDepMonitor = Dea::NodeManager.instance.getTxDepMonitor(key)
           
           # 
           # if txCtx.getRootTx != nil
@@ -206,7 +206,7 @@ module Dea
           
          
           if eventType == Dea::TxEventType::TransactionStart
-              # DEA向Router查询，到本实例的请求，是否是来自某个根事务？
+              # DEA向Router查询，到本实例的请求，是否是来自某个根事务 
               router_ip = @instance.bootstrap.config["router_ip"]
               router_port = @instance.bootstrap.config["router_port"]
               
@@ -216,9 +216,10 @@ module Dea
               ref = msg.to_json      
               puts "#{name} send private_instance_id to router : private_instance_id= #{@instance.private_instance_id}"
               streamSock = TCPSocket.new( "192.168.12.34", 6666 )  
+              # router opened a port at 6666 for query_server
               streamSock.write( ref )  
               str = streamSock.recv( 1024 )  
-              puts "#{name} get from stream sock #{str}"#  str  
+              puts "#{name} get from stream sock #{str}"#   
               streamSock.close  
               
               handle_remote_msg(str)
@@ -237,7 +238,7 @@ module Dea
                 # txLifecycleMgr.endLocalSubTx()
                 #^_^，这里调用endLocal
               # elsif invocationCtx.subTx != nil && invocationCtx.hostComp == invocationCtx.subComp
-#                 
+               #                 
              
                 send_data("no need call ")
                 close_connection_after_writing
@@ -266,7 +267,7 @@ module Dea
                 msg["proxy_root_tx_id"] = proxyRootTxId
                 @xmlUtil = Dea::XMLUtil.new
                 comm =  @xmlUtil.getAllComponentsComm
-                puts "collect_server: comm"
+                puts "collect_server: comm #{comm}"
                 ip =  "192.168.12.34"
                 port =  comm[parentComp]
          
@@ -278,7 +279,7 @@ module Dea
               end
           end
           
-          rootTx = txMonitor.notify(eventType,transaction_id, futures,pasts) #通知事务管理器
+          rootTx = txDepMonitor.notify(eventType,transaction_id, futures,pasts) #通知事务依赖监听器
           if eventType == Dea::TxEventType::TransactionStart
             #{name}.
             puts "collect_server send data back , rootTx = #{rootTx}"
@@ -328,8 +329,8 @@ module Dea
       
 
         elsif @json["msgType"] != nil && @json["msgType"] == "SubNotifyParent" 
-          #here 与if instance_id === nil同级
-            #这里应该永远不会被调用,这段逻辑被移到
+            #here 与if instance_id === nil同级
+            #这里应该永远不会被调用,这段逻辑被移到,这段应该被删除
             # 通知调用的构件 ,关于根事务和父事务的信息"
             #这里不仅创建InvocationContext，而且调用startRemoteContext
             
@@ -346,7 +347,7 @@ module Dea
             
             # puts "#{parentName} : #{parentPort}.stats_collect_server.handle : first get msg from sub, then notify sub tx"                      
             # puts "#{parentName} : #{parentPort}.stats_collect_server.handle: notify sub dea about root tx info "
-#             
+            #             
             # puts "stats_collect_server.handle other_dea_ip = #{other_dea_ip}"
             # puts "stats_collect_server.handle other_dea_port #{other_dea_port}"  
             
@@ -377,14 +378,14 @@ module Dea
             streamSock = TCPSocket.new( "192.168.12.34", subPort )  
             streamSock.write( msg.to_json )  
             str = streamSock.recv( 1024 )  
-            puts "#{name} get from stream sock #{str}"#  str  
+            puts "#{name} get from stream sock #{str}"  
             streamSock.close 
                 
           
         elsif @json["rootTx"] != nil && @json["target_comp"] != nil && @json["invocation_context"] != nil
-          #这里是hello接受到call-dea发来的消息，call通知hello，关于InvocationContxt
+          #  这里是hello接受到call-dea发来的消息，call通知hello，关于InvocationContxt
           #  this is a sync msg ,so we need reply 
-          # puts "collect_server : i get notify  to cache invocationCtx from parent  "
+          #  puts "collect_server : i get notify  to cache invocationCtx from parent  "
        
 
             send_data("#{key} resolve invocationCtx done")
@@ -430,7 +431,7 @@ module Dea
           # puts "payload = #{request.payload}" 
           # puts "collect_server : conf : #{  id } , port = #{ @configPort.to_s}"
           key = id +":" + @configPort.to_s #  testing
-          updateMgr = Dea::NodeManager.instance.getUpdateManager(key) #这里的问题？？？
+          updateMgr = Dea::NodeManager.instance.getUpdateManager(key) #这里的问题 
           if updateMgr != nil
             updateMgr.instance = @instance#如果不加这一句，真的会出现hello的更新转发到db上？
             result = updateMgr.processMsg(request)

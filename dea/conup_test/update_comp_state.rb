@@ -1,6 +1,6 @@
 # UTF-8
 require_relative "../conup/remote_conf"
-require_relative "../conup/query_type"
+require_relative "../conup/datamodel/query_type"
 require 'date'
 
 
@@ -19,6 +19,6 @@ targetPort = "8000"
 res = rcs.changeComponentTo(ip,targetIdentifier,targetPort,
                Dea::QueryType::UpdateComponentNormal)
                
-     # res = rcs.changeComponentTo(ip,targetIdentifier,targetPort,
+               # res = rcs.changeComponentTo(ip,targetIdentifier,targetPort,
                # Dea::QueryType::UpdateComponentOndemand)
 puts  res

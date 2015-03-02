@@ -1,15 +1,13 @@
 # UTF-8
 
 require 'json'
-require_relative "./msg_type"
+require_relative "./datamodel/msg_type"
 require_relative "./update_operation_type"
 require_relative "./update_context_payload_creator"
-require_relative "./client_once"
-# require_relative "./client_sync"
-# require_relative "./client_sync_close"
-require_relative "./client_sync_response"
-require_relative "./comm_type"
-require_relative "./query_type"
+require_relative "./comm/client_once" 
+require_relative "./comm/client_sync_response"
+require_relative "./datamodel/comm_type"
+require_relative "./datamodel/query_type"
 
 module Dea
   class RemoteConf

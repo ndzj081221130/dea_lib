@@ -1,5 +1,5 @@
 # UTF-8
-require "../conup/dep_op_type"
+require "../conup/datamodel/dep_op_type"
 
 if "ACK_SUBTX_INIT" == Dea::DepOperationType::ACK_SUBTX_INIT
   puts "equal ACK_SUBTX_INIT"

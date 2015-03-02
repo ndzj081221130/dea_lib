@@ -4,8 +4,8 @@ require_relative "../conup/component"
 require "set"
 require_relative "../conup/tx_lifecycle_mgr"
 require_relative "../conup/tx_dep_monitor"
-require_relative "../conup/query_type"
-require_relative "../conup/client_sync_response"
+require_relative "../conup/datamodel/query_type"
+require_relative "../conup/comm/client_sync_response"
 
 #nodeMgr = Dea::NodeManager.instance
 

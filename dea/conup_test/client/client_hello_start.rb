@@ -1,8 +1,8 @@
-require_relative "../conup/client"
-require_relative "../conup/client_sync_response"
+require_relative "../conup/comm/client_once"
+require_relative "../conup/comm/client_sync_response"
 require_relative "./constant"
 require "json"
- require_relative "../conup/client_sync_close"
+require_relative "../conup/comm/client_sync_close"
 require 'eventmachine'
 ip="192.168.12.34"
 port="8000"

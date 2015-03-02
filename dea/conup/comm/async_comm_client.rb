@@ -1,6 +1,6 @@
 # UTF-8
 
-require_relative "./client"
+require_relative "./client_once"
  
 module Dea
   

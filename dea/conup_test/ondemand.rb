@@ -1,6 +1,6 @@
 # UTF-8
 require_relative "../conup/remote_conf"
-require_relative "../conup/query_type"
+require_relative "../conup/datamodel/query_type"
 require 'date'
 
 

@@ -4,7 +4,7 @@ require "steno"
 require "steno/core_ext"
 require 'json'
 require_relative "../conup/tx_dep_monitor"
-require_relative "../conup/tx_event_type"
+# require_relative "../conup/datamodel/tx_event_type"
 require_relative "../stats_collect_server"
 require_relative "./constant"
 require "set"

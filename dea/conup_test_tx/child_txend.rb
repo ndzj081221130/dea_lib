@@ -1,4 +1,4 @@
-require_relative "../conup/client_once"
+require_relative "../conup/comm/client_once"
 
 ref ="{\"PastComps\":[],\"indeps\":[\"ParentComponent\"],"+
             "\"event_type\":\"TransactionEnd\",\"name\":\"ChildComponent\","+
